@@ -9,6 +9,12 @@ public class Token {
 		literal = lit;
 		lemma = lemm;
 		pos = po;
+ 	}
+	public Token(String lit, String lem, String po, List<String> ftrs) {
+		literal = lit;
+		lemma = lem;
+		pos = po;
+		features = ftrs;
 	}
 	
 	protected String literal;

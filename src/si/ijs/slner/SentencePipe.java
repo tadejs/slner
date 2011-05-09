@@ -73,7 +73,7 @@ public class SentencePipe extends Pipe {
 			cc.mallet.types.Token tok = new cc.mallet.types.Token(t.getLiteral());
 			
 			if (t.getLemma() != null) {
-				tok.setFeatureValue("Lemma="+t.getLemma(), 1);
+				//tok.setFeatureValue("Lemma="+t.getLemma(), 1);
 			}
 			
 			for (String ftr : t.getFeatures()) {
