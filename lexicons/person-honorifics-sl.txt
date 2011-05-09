@@ -1,0 +1,17 @@
+dr
+prof
+mag
+pl
+inž
+univ
+dipl
+g
+ga
+gdč
+gospod
+gospa
+gospodična
+profesor
+inženir
+
+
