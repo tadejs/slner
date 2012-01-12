@@ -1,13 +1,10 @@
 package si.ijs.slner;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.List;
 
 import si.ijs.slner.tei.Doc;
 import si.ijs.slner.tei.Token;
-import si.ijs.slner.tei.TsvWriter;
 import cc.mallet.types.Instance;
 
 public class SentenceIterator implements Iterator<Instance> {
@@ -28,18 +25,7 @@ public class SentenceIterator implements Iterator<Instance> {
 	@Override
 	public Instance next() {
 		List<Token> sent = sentIt.next();
-		StringBuilder sb = new StringBuilder();
-		for (Token t : sent) {
-			sb.append(t.getLiteral());
-			sb.append(' ');
-		}
-		StringWriter sw = new StringWriter();
-		try {
-			TsvWriter.writeSentence(sw, sent);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return new Instance(sw.toString(), null,  "Sentence_"+(i++), sb.toString());
+		return new Instance(sent, null,  "Sentence_"+(i++), sent);
 	}
 	
 	@Override

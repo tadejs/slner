@@ -24,10 +24,13 @@ public class TEIReader  {
 	/** current elements */
 	protected Token currentToken = null;
 	
+	protected Map<String, List<Token>> currentChunks = null;
+	
 	protected static XMLInputFactory inFactory = XMLInputFactory.newFactory();
 	
 	public TEIReader() {
 		stateStack = new Stack<TEIReader.State>();
+		currentChunks = new HashMap<String, List<Token>>();
 	}
 	
 	public Doc read(InputStream is) throws XMLStreamException {
@@ -120,7 +123,7 @@ public class TEIReader  {
 		case p:
 			break;
 		case s:
-			processS();
+			processSent();
 			break;
 		case c:
 			processC();
@@ -129,18 +132,38 @@ public class TEIReader  {
 			processW();
 			break;
 		case S:
+			processSpace();
 			break;
+		case chunks:
+			break;
+		case chunk:
+			processChunk();
 		default:
 			break;
 		}
 	}
 	
-	
+	protected void processChunk() {
+		switch (rdr.getEventType()) {
+			case XMLStreamReader.START_ELEMENT:
+				String id = rdr.getAttributeValue(null, "id");
+				String type=  rdr.getAttributeValue(null, "type");
+				List<Token> chunkTokens = currentChunks.get(id);
+				
+				if (chunkTokens != null) {
+					for (Token token : chunkTokens) {
+						token.setTokenClass(type);
+					}
+				}
+				break;
+		}
+	}
 
 	protected void processC() {
 		switch (rdr.getEventType()) {
 			case XMLStreamReader.START_ELEMENT:
-				currentToken = new Token(null, null, null);
+				String id = rdr.getAttributeValue(null, "id");
+				currentToken = new Token(Token.Type.c, id, null, null, null);
 				break;
 			case XMLStreamReader.CHARACTERS:
 				currentToken.setLiteral(rdr.getText());
@@ -156,12 +179,22 @@ public class TEIReader  {
 	protected void processW() {
 		switch (rdr.getEventType()) {
 			case XMLStreamReader.START_ELEMENT:
+				String id = rdr.getAttributeValue(null, "id");
 				String lemma = rdr.getAttributeValue(null, "lemma");
 				String posTag = rdr.getAttributeValue(null, "msd");
-				currentToken = new Token(null, lemma, posTag);
-				List<String> features = new ArrayList<String>();
-				PosDefs.decode(posTag, features);
-				currentToken.setFeatures(features);
+				String chunk = rdr.getAttributeValue(null, "chunk");
+				
+				currentToken = new Token(Token.Type.w, id, null, lemma, posTag);
+
+				
+				if (chunk != null) {
+					List<Token> chunkTokens = currentChunks.get(chunk);
+					if (chunkTokens == null) {
+						chunkTokens = new ArrayList<Token>(2);
+						currentChunks.put(chunk, chunkTokens);
+					}
+					chunkTokens.add(currentToken);
+				}
 				break;
 			case XMLStreamReader.CHARACTERS:
 				currentToken.setLiteral(rdr.getText());
@@ -173,10 +206,20 @@ public class TEIReader  {
 		
 	}
 	
-	protected void processS() {
+	protected void processSent() {
 		switch (rdr.getEventType()) {
 			case XMLStreamReader.START_ELEMENT:
+				currentChunks.clear();
 				doc.addSentence();
+				break;
+		}
+	}
+	
+	
+	protected void processSpace() {
+		switch (rdr.getEventType()) {
+			case XMLStreamReader.START_ELEMENT:
+				doc.addToken(new Token(Token.Type.S, null, null, null, null));
 				break;
 		}
 	}
@@ -185,13 +228,16 @@ public class TEIReader  {
 	enum State { 
 		start(new State[]{}, ""),
 		TEI(start, "TEI"), 
-			text(TEI, "text"), 
+			text(new State[]{TEI, start}, "text"), 
 				body(text, "body"), 
-					p(body, "p"),
+					div(body, "div"),
+					p(new State[] {body, div}, "p"),
 						s(p, "s"),
 							c(s,"c"),
 							S(s,"S"),
-							w(s,"w");
+							w(s,"w"),
+							chunks(s, "chunks"),
+								chunk(chunks, "chunk");
 		
 		/**
 		 * Array of parent states to this one.

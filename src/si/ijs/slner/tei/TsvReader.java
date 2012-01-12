@@ -54,13 +54,13 @@ public class TsvReader {
 		
 		
 
-		List<String> features = new ArrayList<String>(items.length);
+		/*List<String> features = new ArrayList<String>(items.length);
 		for (int i = 2; i < items.length - 2; i++) {
 			features.add(items[i]);
-		}
-		Token tok = new Token(word, lemma, null);
+		}*/
+		Token tok = new Token(Token.Type.w, null, word, lemma, null);
 		tok.setTokenClass(clazz);
-		tok.setFeatures(features);
+		//tok.setFeatures(features);
 		return tok;
 	}
 }

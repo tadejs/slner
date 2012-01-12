@@ -3,5 +3,8 @@ Urad
 Ministrstvo
 Institut
 Inštitut
+fakulteta
+univerza
+s.p.
 d.d.
 d.o.o.

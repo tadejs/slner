@@ -31,12 +31,9 @@ public class TsvWriter {
 				wri.write(tok.getLemma());
 				wri.write('\t' );
 			}
-			if (tok.getFeatures() != null) {
-				for (String feature : tok.getFeatures()) {
-					wri.write(feature);
-					wri.write('\t');
-				}
-			}
+			wri.write(tok.getPos());
+			wri.write('\t');
+
 			if (tok.getTokenClass() != null) {
 				wri.write(tok.getTokenClass());
 			} else {

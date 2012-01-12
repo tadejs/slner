@@ -2,8 +2,6 @@ package si.ijs.slner;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -20,11 +18,14 @@ import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
 import cc.mallet.fst.ViterbiWriter;
+import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
+import cc.mallet.pipe.tsf.FeaturesInWindow;
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
+import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.pipe.tsf.TrieLexiconMembership;
 import cc.mallet.share.mccallum.ner.TUI;
 import cc.mallet.types.Alphabet;
@@ -59,11 +60,11 @@ public class SloveneNER {
 	 "Offset conjunctions applied to features that are [A-Z]*", null);
 	
 	static CommandOption.Integer wordWindowFeatureOption = new CommandOption.Integer
-	(TUI.class, "word-window-size", "INTEGER", true, 5,
+	(TUI.class, "word-window-size", "INTEGER", true, 3,
 	 "Size of window of words as features: 0=none, 10, 20...", null);
 
 	static CommandOption.Boolean charNGramsOption = new CommandOption.Boolean
-	(TUI.class, "char-ngrams", "true|false", true, false,
+	(TUI.class, "char-ngrams", "true|false", true, true,
 	 "", null);
 	
 	static CommandOption.Boolean useFeatureInductionOption = new CommandOption.Boolean
@@ -115,10 +116,10 @@ public class SloveneNER {
 		//String outFile = args[1];
 
 		SloveneNER ner = new SloveneNER();
-		//ner.trainTestEvaluation( inOption.value());
+		ner.trainTestEvaluation( inOption.value());
 		
 		
-		ner.train(inOption.value());
+	/*	ner.train(inOption.value());
 		Doc test = DocReaders.openFile(new File(inOption.value())).get(0);
 		
 		List<List<String>> tags = ner.tagTokens(test);
@@ -126,7 +127,7 @@ public class SloveneNER {
 		Writer w = new OutputStreamWriter(System.out);
 		test.printTagged(tags, w);
 		w.flush();
-		w.close();
+		w.close();*/
 		
 		
 	}
@@ -213,7 +214,7 @@ public class SloveneNER {
 	}
 
 	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {{-2}, {-1}, {1}, {2}});
+		return getPipe(new int[][] {{-2,0}, {-1,0}, {-1,1}, {1}});//, {1},{2}});
 	}
 
 
@@ -222,46 +223,46 @@ public class SloveneNER {
 				new SentencePipe(true),
 				new RegexMatches ("INITCAP", Pattern.compile (CAPS+".*")),
 				new RegexMatches ("CAPITALIZED", Pattern.compile (CAPS+LOW+"*")),
-//				new RegexMatches ("ALLCAPS", Pattern.compile (CAPS+"+")),
+				new RegexMatches ("ALLCAPS", Pattern.compile (CAPS+"+")),
 //				new RegexMatches ("MIXEDCAPS", Pattern.compile ("[A-Z][a-z]+[A-Z][A-Za-z]*")),
-//				new RegexMatches ("CONTAINSDIGITS", Pattern.compile (".*[0-9].*")),
-//				new RegexMatches ("ALLDIGITS", Pattern.compile ("[0-9]+")),
-//				new RegexMatches ("NUMERICAL", Pattern.compile ("[-0-9]+[\\.,]+[0-9\\.,]+")),
-//				new RegexMatches ("ALPHNUMERIC", Pattern.compile ("[A-Za-z0-9]+")),
+				new RegexMatches ("CONTAINSDIGITS", Pattern.compile (".*[0-9].*")),
+				new RegexMatches ("ALLDIGITS", Pattern.compile ("[0-9]+")),
+				new RegexMatches ("NUMERICAL", Pattern.compile ("[-0-9]+[\\.,]+[0-9\\.,]+")),
+				new RegexMatches ("ALPHNUMERIC", Pattern.compile ("[A-Za-z0-9]+")),
 //				new RegexMatches ("ROMAN", Pattern.compile ("[ivxdlcm]+|[IVXDLCM]+")),
 //				new RegexMatches ("MULTIDOTS", Pattern.compile ("\\.\\.+")),
 				new RegexMatches ("ENDSINDOT", Pattern.compile ("[^\\.]+.*\\.")),
-				new RegexMatches ("CONTAINSDASH", Pattern.compile (ALPHANUM+"+-"+ALPHANUM+"*")),
+//				new RegexMatches ("CONTAINSDASH", Pattern.compile (ALPHANUM+"+-"+ALPHANUM+"*")),
 				new RegexMatches ("ACRO", Pattern.compile ("[A-Z][A-Z\\.]*\\.[A-Z\\.]*")),
-				new RegexMatches ("LONELYINITIAL", Pattern.compile (CAPS+"\\.")),
+//				new RegexMatches ("LONELYINITIAL", Pattern.compile (CAPS+"\\.")),
 				new RegexMatches ("SINGLECHAR", Pattern.compile (ALPHA)),
 				new RegexMatches ("CAPLETTER", Pattern.compile ("[A-Z]")),
-//				new RegexMatches ("PUNC", Pattern.compile (PUNT)),
-//				new RegexMatches ("QUOTE", Pattern.compile (QUOTE)),
+				new RegexMatches ("PUNC", Pattern.compile (PUNT)),
+				new RegexMatches ("QUOTE", Pattern.compile (QUOTE)),
 				new RegexMatches ("LOWER", Pattern.compile (LOW+"+")),
 				new RegexMatches ("MIXEDCAPS", Pattern.compile ("[A-Z]+[a-z]+[A-Z]+[a-z]*")),
 				//new TokenText ("W="),
-				new TrieLexiconMembership( new File("lexicons/location-cities-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/location-countries-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/location-int-cities-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/location-municipalities-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/organization-tokens-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/person-honorifics-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/person-names-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/person-names-sl-female.txt")),
-				new TrieLexiconMembership( new File("lexicons/person-names-sl-male.txt")),
-				new TrieLexiconMembership( new File("lexicons/person-surnames-2-sl.txt")),
-				new TrieLexiconMembership( new File("lexicons/person-surnames-sl.txt")),
+				new LemmaLexiconMembership( new File("lexicons/location-cities-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/location-countries-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/location-int-cities-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/location-municipalities-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt")),
+				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-sl-female.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-sl-male.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-surnames-2-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/mte-sl.lex"), false),
+				new TrieLexiconMembership(new File("lexicons/american-english"), true),
 				new OffsetConjunctions (offsets),
-				//(capOffsets != null ? : (Pipe) new Noop ()),
-				//(Pipe) new OffsetConjunctions (capOffsets),
 				
-				//(wordWindowFeatureOption.value > 0
-				//(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value,	Pattern.compile ("WORD=.*"), true),
-				// : (Pipe) new Noop()),
-				//(charNGramsOption.value
-				// ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {2,3,4})
-				// : (Pipe) new Noop()),
+				/*(wordWindowFeatureOption.value > 0 ? 
+				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
+				 : (Pipe) new Noop()),*/
+				(charNGramsOption.value
+				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {3})
+				 : (Pipe) new Noop()),
 
 				//new PrintTokenSequenceFeatures(),
 
@@ -275,10 +276,10 @@ public class SloveneNER {
 	public TransducerTrainer makeTrainer(InstanceList trainingData) {
 		// Print out all the target names
 		Alphabet targets = pipe.getTargetAlphabet();
-		System.out.print ("State labels:");
+		/*System.out.print ("State labels:");
 		for (int i = 0; i < targets.size(); i++)
 			System.out.print (" " + targets.lookupObject(i));
-		System.out.println ("");
+		System.out.println ("");*/
 
 		// Print out some feature information
 		System.out.println ("Number of features = "+pipe.getDataAlphabet().size());
@@ -286,14 +287,14 @@ public class SloveneNER {
 		CRF crf = new CRF(pipe, null);
 		crf.addStatesForLabelsConnectedAsIn(trainingData);
 		
-		//CRFTrainerByStochasticGradient crft = new CRFTrainerByStochasticGradient(crf, 2);
+		//CRFTrainerByStochasticGradient crft = new CRFTrainerByStochasticGradient(crf, 0.1);
 		//CRFTrainerByEntropyRegularization crft = new CRFTrainerByEntropyRegularization(crf);
 		CRFTrainerByLabelLikelihood crft = new CRFTrainerByLabelLikelihood(crf);
 		//crft.setUseSomeUnsupportedTrick(true);
 		crft.setUseSparseWeights(true);
 		//crft.setUseHyperbolicPrior(true);
 		//CRFTrainerByL1LabelLikelihood crft = new CRFTrainerByL1LabelLikelihood(crf);
-		//CRFTrainerByValueGradients crft = new CRFTrainerByValueGradients(`, optimizableByValueGradientObjects)
+		//CRFTrainerByValueGradients crft = new CRFTrainerByValueGradients(crf, optimizableByValueGradientObjects);
 
 		/*for (int i = 0; i < crf.numStates(); i++) {
 			Transducer.State s = crf.getState (i);
@@ -310,8 +311,8 @@ public class SloveneNER {
 		MultiSegmentationEvaluator eval =
 			new MultiSegmentationEvaluator (new InstanceList[] {trainingData, testingData},
 					new String[] {"Training", "Testing"},
-					new String[] {"PERSON", "LOCATION", "ORG"/*, "PROD"*/},
-					new String[] {"PERSON", "LOCATION", "ORG"/*, "PROD"*/});
+					new String[] {"osebno", "zemljepisno", "stvarno"/*, "PROD"*/},
+					new String[] {"osebno", "zemljepisno", "stvarno"/*, "PROD"*/});
 		ViterbiWriter vw = new ViterbiWriter ("out",
 				new InstanceList[] {trainingData, testingData}, new String[] {"Training", "Testing"});
 			

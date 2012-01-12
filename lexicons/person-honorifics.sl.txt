@@ -13,9 +13,5 @@ gospa
 gospodična
 profesor
 inženir
-magister
-doktor
-predsednik
-minister
 
 

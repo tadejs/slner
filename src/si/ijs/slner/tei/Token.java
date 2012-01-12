@@ -1,34 +1,28 @@
 package si.ijs.slner.tei;
 
-import java.util.List;
 
 
 
 public class Token {
-	public Token(String lit, String lemm, String po) {
+	
+	public enum Type { w, c, S }
+	
+	public Token(Type t, String id_, String lit, String lemm, String po) {
+		type = t;
+		id = id_;
 		literal = lit;
 		lemma = lemm;
 		pos = po;
- 	}
-	public Token(String lit, String lem, String po, List<String> ftrs) {
-		literal = lit;
-		lemma = lem;
-		pos = po;
-		features = ftrs;
 	}
-	
+
+	protected final Type type;
+	protected final String id;
 	protected String literal;
 	protected String lemma;
 	protected String pos;
 	protected String clazz;
-	protected List<String> features;
 	
-	public List<String> getFeatures() {
-		return features;
-	}
-	public void setFeatures(List<String> features) {
-		this.features = features;
-	}
+
 	public String getTokenClass() {
 		return clazz;
 	}
@@ -50,5 +44,11 @@ public class Token {
 	public void setPos(String p) {
 		pos = p;
 	}
-	
+	public String getId() {
+		return id;
+	}
+	public Type getType() {
+		return type;
+	}
 }
+

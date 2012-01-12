@@ -4,38 +4,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PosDefs {
-
+	
+	public enum Type { 
+		noun, verb, adjective, adverb, pronoun, numeral, preposition, 
+		conjunction, particle, interjection, abbreviation, residual, unknown
+	}
+	
 	
 	public static List<String> decode(String posTag) {
 		List<String> features = new ArrayList<String>();
 		decode(posTag, features);
 		return features;
 	}
+	
+	public static Type getType(String posTag) {
+		switch (posTag.charAt(0)) {
+			case 'S': return Type.noun;
+			case 'G': return Type.verb;
+			case 'P': return Type.adjective; 
+			case 'R': return Type.adverb;
+			case 'Z': return Type.pronoun;
+			case 'K': return Type.numeral;
+			case 'D': return Type.preposition;
+			case 'V': return Type.conjunction; 
+			case 'L': return Type.particle;
+			case 'M': return Type.interjection;
+			case 'O': return Type.abbreviation;
+			case 'N': return Type.residual;
+			default: return Type.unknown;
+		}
+	}
 
 	public static void decode(String posTag, List<String> features) {
-		switch(posTag.charAt(0)) {
-			case 'S': decodeNoun(posTag, features); break;
-			case 'G': decodeVerb(posTag, features); break;
-			case 'P': decodeAdjective(posTag, features); break;
-			case 'R': decodeAdverb(posTag, features); break;
-			case 'Z': decodePronoun(posTag, features); break;
-			case 'K': decodeNumeral(posTag, features); break;
-			case 'D': decodePreposition(posTag, features); break;
-			case 'V': decodeConjunction(posTag, features); break;
-			case 'L': decodeParticle(posTag, features); break;
-			case 'M': decodeInterjection(posTag, features); break;
-			case 'O': decodeAbbreviation(posTag, features); break;
-			case 'N': decodeResidual(posTag, features); break;
+		switch(getType(posTag)) {
+			case noun: decodeNoun(posTag, features); break;
+			case verb: decodeVerb(posTag, features); break;
+			case adjective: decodeAdjective(posTag, features); break;
+			case adverb: decodeAdverb(posTag, features); break;
+			case pronoun: decodePronoun(posTag, features); break;
+			case numeral: decodeNumeral(posTag, features); break;
+			case preposition: decodePreposition(posTag, features); break;
+			case conjunction: decodeConjunction(posTag, features); break;
+			case particle: decodeParticle(posTag, features); break;
+			case interjection: decodeInterjection(posTag, features); break;
+			case abbreviation: decodeAbbreviation(posTag, features); break;
+			case residual: decodeResidual(posTag, features); break;
+			default: break;
 		}
 	}
 
 	private static void decodeResidual(String posTag, List<String> features) {
 		features.add("CATEGORY=Residual");
-		checkFormat(posTag, 2);
-		switch (posTag.charAt(1)) {
-			case 'j':features.add("Type=foreign"); break;
-			case 't':features.add("Type=typo"); break;
-			case 'p':features.add("Type=program"); break;
+		checkFormat(posTag, 1, 2);
+		if (posTag.length() > 1) {
+			switch (posTag.charAt(1)) {
+				case 'j':features.add("Type=foreign"); break;
+				case 't':features.add("Type=typo"); break;
+				case 'p':features.add("Type=program"); break;
+			}
 		}
 	}
 
