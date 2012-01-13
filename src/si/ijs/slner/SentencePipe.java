@@ -18,14 +18,14 @@ public class SentencePipe extends Pipe {
 	private static final long serialVersionUID = 7920108448164849979L;
 	
 	protected Pattern newlines;
-	protected TsvReader rdr;
+	//protected TsvReader rdr;
 	protected boolean saveSrc;
 	//protected boolean doDigitCollapses;
 	
 	public SentencePipe(/*boolean collapseDigits*/boolean saveSource) {
 		super(null, new LabelAlphabet());
 		newlines = Pattern.compile("\n");
-		rdr = new TsvReader();
+		//rdr = new TsvReader();
 		saveSrc = saveSource;
 		//doDigitCollapses = collapseDigits;
 	}

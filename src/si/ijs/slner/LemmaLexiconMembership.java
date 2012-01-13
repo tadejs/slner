@@ -9,229 +9,103 @@ import java.io.LineNumberReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Reader;
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.StringTokenizer;
 
 import cc.mallet.pipe.Pipe;
 import cc.mallet.types.Instance;
 import cc.mallet.types.Token;
 import cc.mallet.types.TokenSequence;
 
-public class LemmaLexiconMembership extends Pipe implements Serializable {
-	// Perhaps give it your own tokenizer?
-	String name; // perhaps make this an array of names
+public class LemmaLexiconMembership extends Pipe {
 
+	
+	String name;
+	gnu.trove.THashSet<String> lexicon;
 	boolean ignoreCase;
-
-	LemmaLexicon lexicon;
-
-	public LemmaLexiconMembership(String name, Reader lexiconReader,
-			boolean ignoreCase) {
+	
+	public LemmaLexiconMembership (String name, Reader lexiconReader, boolean ignoreCase)
+	{
 		this.name = name;
-		this.lexicon = new LemmaLexicon(name, ignoreCase);
-		LineNumberReader reader = new LineNumberReader(lexiconReader);
+		this.lexicon = new gnu.trove.THashSet<String> ();
+		this.ignoreCase = ignoreCase;
+		LineNumberReader reader = new LineNumberReader (lexiconReader);
 		String line;
 		while (true) {
 			try {
 				line = reader.readLine();
 			} catch (IOException e) {
-				throw new IllegalStateException();
+				throw new IllegalStateException ();
 			}
 			if (line == null) {
 				break;
 			} else {
-				lexicon.add(line);
+			//	System.out.println(name + " : " + (ignoreCase ? line.toLowerCase().intern() : line.intern()) );
+				lexicon.add (ignoreCase ? line.toLowerCase() : line);
 			}
 		}
 		if (lexicon.size() == 0)
-			throw new IllegalArgumentException("Empty lexicon");
+			throw new IllegalArgumentException ("Empty lexicon");
 	}
 
-	public LemmaLexiconMembership(String name, Reader lexiconReader,
-			boolean ignoreCase, boolean includeDelims, String delim) {
-		this.name = name;
-		this.lexicon = new LemmaLexicon(name, ignoreCase);
-		LineNumberReader reader = new LineNumberReader(lexiconReader);
-		String line;
-		while (true) {
-			try {
-				line = reader.readLine();
-			} catch (IOException e) {
-				throw new IllegalStateException();
-			}
-			if (line == null) {
-				break;
-			} else {
-				lexicon.add(line, includeDelims, delim);
-			}
-		}
-		if (lexicon.size() == 0)
-			throw new IllegalArgumentException("Empty lexicon");
+	public LemmaLexiconMembership (String name, File lexiconFile, boolean ignoreCase) throws FileNotFoundException
+	{
+		this (name, new BufferedReader (new FileReader (lexiconFile)), ignoreCase);
 	}
 
-	public LemmaLexiconMembership(String name, File lexiconFile,
-			boolean ignoreCase) throws FileNotFoundException {
-		this(name, new BufferedReader(new FileReader(lexiconFile)), ignoreCase);
+	public LemmaLexiconMembership (File lexiconFile, boolean ignoreCase) throws FileNotFoundException
+	{
+		this (lexiconFile.getName(), lexiconFile, ignoreCase);
 	}
 
-	public LemmaLexiconMembership(String name, File lexiconFile,
-			boolean ignoreCase, boolean includeDelims, String delim)
-			throws FileNotFoundException {
-		this(name, new BufferedReader(new FileReader(lexiconFile)), ignoreCase,
-				includeDelims, delim);
+	public LemmaLexiconMembership (File lexiconFile) throws FileNotFoundException
+	{
+		this (lexiconFile.getName(), lexiconFile, true);
 	}
 
-	public LemmaLexiconMembership(File lexiconFile, boolean ignoreCase)
-			throws FileNotFoundException {
-		this(lexiconFile.getName(), lexiconFile, ignoreCase);
+	
+	// Serialization 
+	
+	private static final long serialVersionUID = 1;
+	private static final int CURRENT_SERIAL_VERSION = 0;
+	
+	private void writeObject (ObjectOutputStream out) throws IOException {
+		out.writeInt (CURRENT_SERIAL_VERSION);
+		out.writeObject (name);
+		out.writeObject (lexicon);
+		out.writeBoolean (ignoreCase);
 	}
-
-	public LemmaLexiconMembership(File lexiconFile) throws FileNotFoundException {
-		this(lexiconFile.getName(), lexiconFile, true);
+	
+	private void readObject (ObjectInputStream in) throws IOException, ClassNotFoundException {
+		int version = in.readInt ();
+		this.name = (String) in.readObject();
+		this.lexicon = (gnu.trove.THashSet<String>) in.readObject();
+		this.ignoreCase = in.readBoolean();
 	}
-
-	public Instance pipe(Instance carrier) {
+	
+	public Instance pipe (Instance carrier)
+	{
 		TokenSequence ts = (TokenSequence) carrier.getData();
-		lexicon.addFeatures(ts);
+		for (int i = 0; i < ts.size(); i++) {
+			Token t = ts.get(i);
+			String lemma = (String) t.getProperty("lemma");
+			String s = lemma == null ? t.getText() : lemma;
+			String conS=s;
+			check(t, s, conS);
+		}
 		return carrier;
 	}
 
-	// Serialization
-
-	private static final long serialVersionUID = 1;
-
-	private static final int CURRENT_SERIAL_VERSION = 0;
-
-	private void writeObject(ObjectOutputStream out) throws IOException {
-		out.writeInt(CURRENT_SERIAL_VERSION);
-		out.writeObject(name);
-		out.writeObject(lexicon);
-		out.writeBoolean(ignoreCase);
+	private void check(Token t, String s, String conS) {
+		//dealing with ([a-z]+), ([a-z]+, [a-z]+), [a-z]+.
+		if(conS.startsWith("("))
+			conS = conS.substring(1);
+		if(conS.endsWith(")") || conS.endsWith("."))
+			conS = conS.substring(0, conS.length()-1);
+		if (lexicon.contains (ignoreCase ? s.toLowerCase() : s))
+			t.setFeatureValue (name, 1.0);
+		if(conS.compareTo(s) != 0) {
+			if (lexicon.contains (ignoreCase ? conS.toLowerCase() : conS))
+				t.setFeatureValue (name, 1.0);
+		}
 	}
-
-	private void readObject(ObjectInputStream in) throws IOException,
-			ClassNotFoundException {
-		int version = in.readInt();
-		this.name = (String) in.readObject();
-		this.lexicon = (LemmaLexicon) in.readObject();
-		this.ignoreCase = in.readBoolean();
-	}
-
-	private static class LemmaLexicon implements Serializable {
-		static final String END_OF_WORD_TOKEN = "end_of_word";
-
-		String name;
-
-		boolean ignoreCase;
-
-		Map<String, Object> lex;
-
-		int size;
-
-		public LemmaLexicon(String name, boolean ignoreCase) {
-			this.name = name;
-			this.ignoreCase = ignoreCase;
-			this.lex = new HashMap<String, Object>();
-			this.size = 0;
-		}
-
-		public void add(String word) {
-			add(word, false, " ");
-		}
-
-		public void add(String word, boolean includeDelims, String delim) {
-			boolean newWord = false;
-			StringTokenizer st = new StringTokenizer(word, delim, includeDelims);
-			Map<String, Object> currentLevel = lex;
-			while (st.hasMoreTokens()) {
-				String token = st.nextToken();
-				if (ignoreCase)
-					token = token.toLowerCase();
-				if (!currentLevel.containsKey(token)) {
-					currentLevel.put(token, new HashMap<String, Object>());
-					newWord = true;
-				}
-				currentLevel = (Map<String, Object>) currentLevel.get(token);
-			}
-			currentLevel.put(END_OF_WORD_TOKEN, "");
-			if (newWord)
-				size++;
-		}
-
-		public void addFeatures(TokenSequence ts) {
-			int i = 0;
-			while (i < ts.size()) {
-				int j = endOfWord(ts, i);
-				if (j == -1) {
-					i++;
-				} else {
-					for (; i <= j; i++) {
-						Token t = ts.get(i);
-						t.setFeatureValue(name, 1.0);
-					}
-				}
-			}
-		}
-
-		private int endOfWord(TokenSequence ts, int start) {
-			if (start < 0 || start >= ts.size()) {
-				System.err
-						.println("Lexicon.lastIndexOf: error - out of TokenSequence boundaries");
-				return -1;
-			}
-			Map<String, Object> currentLevel = lex;
-			int end = -1;
-			for (int i = start; i < ts.size(); i++) {
-				Token t = ts.get(i);
-				
-				//String s = //t.getText();
-				String s = (String) t.getProperty("lemma");
-				if (s == null) {
-					s = t.getText();
-				}
-				if (ignoreCase)
-					s = s.toLowerCase();
-				currentLevel = (Map<String, Object>) currentLevel.get(s);
-				if (currentLevel == null) {
-					return end;
-				}
-				if (currentLevel.containsKey(END_OF_WORD_TOKEN)) {
-					end = i;
-				}
-			}
-			return end;
-		}
-
-		public int size() {
-			return size;
-		}
-
-		// Serialization
-
-		private static final long serialVersionUID = 1;
-
-		private static final int CURRENT_SERIAL_VERSION = 0;
-
-		private void writeObject(ObjectOutputStream out) throws IOException {
-			out.writeInt(CURRENT_SERIAL_VERSION);
-			out.writeObject(name);
-			out.writeObject(lex);
-			out.writeBoolean(ignoreCase);
-			out.writeInt(size);
-		}
-
-		private void readObject(ObjectInputStream in) throws IOException,
-				ClassNotFoundException {
-			int version = in.readInt();
-			this.name = (String) in.readObject();
-			this.lex = (Map<String, Object>) in.readObject();
-			this.ignoreCase = in.readBoolean();
-			this.size = in.readInt();
-		}
-
-	}
-
+	
 }

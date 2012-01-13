@@ -219,7 +219,7 @@ public class SloveneNER {
 	}
 
 	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {{-2,0}, {-1,0}, {-1,1}, {1}, {-1,2}, {-2,1}});//, {1},{2}});
+		return getPipe(new int[][] {{ }}); //-2,0}, {-1,0}, {-1,1}, {1}, {-1,2}, {-2,1}});//, {1},{2}});
 	}
 
 
@@ -247,18 +247,18 @@ public class SloveneNER {
 				new RegexMatches ("LOWER", Pattern.compile (LOW+"+")),
 				new RegexMatches ("MIXEDCAPS", Pattern.compile ("[A-Z]+[a-z]+[A-Z]+[a-z]*")),
 				//new TokenText ("W="),
-				new LemmaLexiconMembership( new File("lexicons/location-cities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/location-countries-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/location-int-cities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/location-municipalities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt")),
-				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl-female.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl-male.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-surnames-2-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/mte-sl.lex"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/location-cities-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/location-countries-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/location-int-cities-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/location-municipalities-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/organization-tokens-sl.txt")),
+				new LemmaTrieLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/person-names-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/person-names-sl-female.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/person-names-sl-male.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/person-surnames-2-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
+				new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.lex"), false),
 				new TrieLexiconMembership(new File("lexicons/american-english"), true),
 				new OffsetConjunctions (offsets),
 				
@@ -308,23 +308,34 @@ public class SloveneNER {
 		return crft;
 	}
 
-	public void crossvalidate(InstanceList data, int folds) {
+	public void crossvalidate(InstanceList data, int folds) throws IOException {
 		CrossValidationIterator cxv = new CrossValidationIterator(data, folds);
 		Scores scores = new Scores();
-		ExecutorService x = Executors.newFixedThreadPool(2);
+		ExecutorService x = Executors.newFixedThreadPool(16);
 		
 		List<Future<Scores>> promises = new ArrayList<Future<Scores>>();
 		
+		int pass = 0;
 		while (cxv.hasNext()) {
 			InstanceList[] ilists = cxv.next();
-			final InstanceList train = ilists[0];
-			final InstanceList test = ilists[1];
+			final InstanceList train = (InstanceList) ilists[0].clone();
+			final InstanceList test = (InstanceList) ilists[1].clone();
+			 
+			final File trainF = File.createTempFile("slner-pass"+pass, "train");
+			final File testF = File.createTempFile("slner-pass"+pass, "test");
+			
+			train.save(trainF);
+			test.save(testF);
+			
 			
 			Future<Scores> scoresFut = x.submit(new Callable<Scores>() {
 
 				@Override
 				public Scores call() throws Exception {
 					CRF crf = new CRF(pipe, null);
+					InstanceList train = InstanceList.load(trainF);
+					InstanceList test = InstanceList.load(testF);
+					
 					crf.addStatesForLabelsConnectedAsIn(train);
 					TransducerTrainer crft = makeTrainer(train);
 					
@@ -347,7 +358,7 @@ public class SloveneNER {
 				
 			});
 			promises.add(scoresFut);
-			
+			pass++;
 		}
 		
 		for (Future<Scores> future : promises) {
