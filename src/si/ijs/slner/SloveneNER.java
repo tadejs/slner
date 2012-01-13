@@ -26,6 +26,7 @@ import cc.mallet.fst.ViterbiWriter;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
+import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
 import cc.mallet.pipe.tsf.TrieLexiconMembership;
 import cc.mallet.share.mccallum.ner.TUI;
@@ -218,7 +219,7 @@ public class SloveneNER {
 	}
 
 	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {/*{-2,0},*/ {-1,0}, {-1,1}, {1}});//, {1},{2}});
+		return getPipe(new int[][] {{-2,0}, {-1,0}, {-1,1}, {1}, {-1,2}, {-2,1}});//, {1},{2}});
 	}
 
 
@@ -259,7 +260,7 @@ public class SloveneNER {
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/mte-sl.lex"), false),
 				new TrieLexiconMembership(new File("lexicons/american-english"), true),
-				//new OffsetConjunctions (offsets),
+				new OffsetConjunctions (offsets),
 				
 				/*(wordWindowFeatureOption.value > 0 ? 
 				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
@@ -356,6 +357,7 @@ public class SloveneNER {
 				e.printStackTrace();
 			} catch (ExecutionException e) {
 				e.printStackTrace();
+				e.getCause().printStackTrace();
 			}
 		}
 		

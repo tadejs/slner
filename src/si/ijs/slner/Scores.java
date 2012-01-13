@@ -2,10 +2,11 @@ package si.ijs.slner;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Scores extends HashMap<String, List<Double>> {
+public class Scores extends LinkedHashMap<String, List<Double>> {
 	
 	/**
 	 * 
