@@ -50,7 +50,7 @@ public class SentencePipe extends Pipe {
 				word = "";
 			}
 			label = t.getTokenClass();
-			if (label == null) {
+			if (label == null || "".equals(label)) {
 				label = "-";
 			}
 			lemma = t.getLemma();
@@ -92,20 +92,25 @@ public class SentencePipe extends Pipe {
 				if (t.getPos() != null) { 
 					PosDefs.decode(t.getPos(), features);
 					
-					/*PosDefs.Type posType = PosDefs.getType(t.getPos());
+					PosDefs.Type posType = PosDefs.getType(t.getPos());
 					switch (posType) {
 						case preposition:
 						case conjunction:
 						case particle:
+						//case verb:
 						case residual:
-							features.add("W="+word);	
-					}*/
+							features.add("W="+(lemma == null ? word : lemma)); break;
+					}
 					
 				}
 				
-				if (word.length() < 5) {
-					features.add("Length="+word.length());
+				switch (word.length()) {
+					case 3: features.add("Length=3"); break;
+					case 2: features.add("Length=2"); break;
+					case 1: features.add("Length=1"); break;
+					default: break;
 				}
+				
 				
 				
 				

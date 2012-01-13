@@ -4,12 +4,18 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import java.util.zip.ZipException;
 
 import javax.xml.stream.XMLStreamException;
 
+import si.ijs.slner.GetDataEvaluator.Scores;
 import si.ijs.slner.tei.Doc;
 import si.ijs.slner.tei.DocReaders;
 import bsh.EvalError;
@@ -18,17 +24,14 @@ import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
 import cc.mallet.fst.ViterbiWriter;
-import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
-import cc.mallet.pipe.tsf.FeaturesInWindow;
-import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
-import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.pipe.tsf.TrieLexiconMembership;
 import cc.mallet.share.mccallum.ner.TUI;
 import cc.mallet.types.Alphabet;
+import cc.mallet.types.CrossValidationIterator;
 import cc.mallet.types.Instance;
 import cc.mallet.types.InstanceList;
 import cc.mallet.types.Sequence;
@@ -196,25 +199,27 @@ public class SloveneNER {
 	
 		System.out.println ("Read "+allData.size()+" instances");
 		
-		InstanceList[] splits = allData.split(new Random(), new double[]{.8,.2});
+		/*InstanceList[] splits = allData.split(new Random(), new double[]{.8,.2});
 		InstanceList trainingData = splits[0];
-		InstanceList testingData = splits[1];
+		InstanceList testingData = splits[1];*/
 	
 		//InstanceList unlabeled = new InstanceList(p);
 		//unlabeled.addThruPipe(new SentenceIterator(DocReaders.openFile(new File("/home/tadej/workspace/slner/jos100k-train.xml.zip")).get(0)));
 		
 
-		TransducerTrainer crft = makeTrainer(trainingData);
+		/*TransducerTrainer crft = makeTrainer(trainingData);
 		
 		System.out.println("Training on "+trainingData.size()+" training instances, "+
 				 testingData.size()+" testing instances...");
 
-		evaluate(trainingData, testingData, crft);
+		evaluate(trainingData, testingData, crft);*/
+		
+		crossvalidate(allData, 5);
 		
 	}
 
 	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {{-2,0}, {-1,0}, {-1,1}, {1}});//, {1},{2}});
+		return getPipe(new int[][] {/*{-2,0},*/ {-1,0}, {-1,1}, {1}});//, {1},{2}});
 	}
 
 
@@ -255,17 +260,16 @@ public class SloveneNER {
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/mte-sl.lex"), false),
 				new TrieLexiconMembership(new File("lexicons/american-english"), true),
-				new OffsetConjunctions (offsets),
+				//new OffsetConjunctions (offsets),
 				
 				/*(wordWindowFeatureOption.value > 0 ? 
 				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
 				 : (Pipe) new Noop()),*/
-				(charNGramsOption.value
+				/*(charNGramsOption.value
 				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {3})
-				 : (Pipe) new Noop()),
+				 : (Pipe) new Noop()),*/
 
 				//new PrintTokenSequenceFeatures(),
-
 				new TokenSequence2FeatureVectorSequence (true, true)
 		});
 		return p;
@@ -304,6 +308,67 @@ public class SloveneNER {
 		return crft;
 	}
 
+	public void crossvalidate(InstanceList data, int folds) {
+		CrossValidationIterator cxv = new CrossValidationIterator(data, folds);
+		GetDataEvaluator.Scores scores = new GetDataEvaluator.Scores();
+		ExecutorService x = Executors.newFixedThreadPool(2);
+		
+		List<Future<GetDataEvaluator.Scores>> promises = new ArrayList<Future<Scores>>();
+		
+		while (cxv.hasNext()) {
+			InstanceList[] ilists = cxv.next();
+			final InstanceList train = ilists[0];
+			final InstanceList test = ilists[1];
+			
+			Future<GetDataEvaluator.Scores> scoresFut = x.submit(new Callable<GetDataEvaluator.Scores>() {
+
+				@Override
+				public Scores call() throws Exception {
+					CRF crf = new CRF(pipe, null);
+					crf.addStatesForLabelsConnectedAsIn(train);
+					TransducerTrainer crft = makeTrainer(train);
+					
+					GetDataEvaluator eval =
+						new GetDataEvaluator (new InstanceList[] {test},
+								new String[] {"Testing"},
+								new String[] {"osebno", "zemljepisno", "stvarno"},
+								new String[] {"osebno", "zemljepisno", "stvarno"});
+					
+					System.out.println("Training..");
+					while (crft.train(train, 15)) {
+						//GetDataEvaluator.Scores s = eval.evaluateGetScores(crft);
+						//System.out.println(s.toString());
+						//scores.addAll(s);
+					}
+					GetDataEvaluator.Scores s = eval.evaluateGetScores(crft);
+					System.out.println("Finished fold");
+					return s;
+				}
+				
+			});
+			promises.add(scoresFut);
+			
+		}
+		
+		for (Future<Scores> future : promises) {
+			try {
+				scores.addAll(future.get());
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		
+		x.shutdown();
+		
+		Map<String, Double> averages = scores.avg();
+		for (Map.Entry<String, Double> me : averages.entrySet()) {
+			System.out.printf("%s: %2.4f\n", me.getKey(), me.getValue());
+		}
+		
+	}
 
 
 	public void evaluate(InstanceList trainingData,
@@ -337,12 +402,17 @@ public class SloveneNER {
 				eval.evaluate(crft);
 				vw.evaluate(crft);
 			}*/
-			while (crft.train(trainingData/*, unlabeled*/, 20)) {
+			
+			
+			
+			while (crft.train(trainingData, 20)) {
 				eval.evaluate(crft);
 				//vw.evaluate(crft);
 			}
 			eval.evaluate(crft);
+			
 			//vw.evaluate(crft);
+			
 		}
 	}
 
