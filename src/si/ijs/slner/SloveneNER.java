@@ -15,7 +15,6 @@ import java.util.zip.ZipException;
 
 import javax.xml.stream.XMLStreamException;
 
-import si.ijs.slner.GetDataEvaluator.Scores;
 import si.ijs.slner.tei.Doc;
 import si.ijs.slner.tei.DocReaders;
 import bsh.EvalError;
@@ -310,17 +309,17 @@ public class SloveneNER {
 
 	public void crossvalidate(InstanceList data, int folds) {
 		CrossValidationIterator cxv = new CrossValidationIterator(data, folds);
-		GetDataEvaluator.Scores scores = new GetDataEvaluator.Scores();
+		Scores scores = new Scores();
 		ExecutorService x = Executors.newFixedThreadPool(2);
 		
-		List<Future<GetDataEvaluator.Scores>> promises = new ArrayList<Future<Scores>>();
+		List<Future<Scores>> promises = new ArrayList<Future<Scores>>();
 		
 		while (cxv.hasNext()) {
 			InstanceList[] ilists = cxv.next();
 			final InstanceList train = ilists[0];
 			final InstanceList test = ilists[1];
 			
-			Future<GetDataEvaluator.Scores> scoresFut = x.submit(new Callable<GetDataEvaluator.Scores>() {
+			Future<Scores> scoresFut = x.submit(new Callable<Scores>() {
 
 				@Override
 				public Scores call() throws Exception {
@@ -340,7 +339,7 @@ public class SloveneNER {
 						//System.out.println(s.toString());
 						//scores.addAll(s);
 					}
-					GetDataEvaluator.Scores s = eval.evaluateGetScores(crft);
+					Scores s = eval.evaluateGetScores(crft);
 					System.out.println("Finished fold");
 					return s;
 				}
