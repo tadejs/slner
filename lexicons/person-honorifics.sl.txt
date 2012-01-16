@@ -3,6 +3,7 @@ prof
 mag
 pl
 inž
+ing
 univ
 dipl
 g
@@ -13,5 +14,3 @@ gospa
 gospodična
 profesor
 inženir
-
-

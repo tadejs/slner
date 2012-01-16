@@ -8,7 +8,6 @@ Ajbelj
 Ajdovščina
 Ajševica
 Ambrož
-pod
 Krvavec
 Ambrus
 Andol
@@ -25,7 +24,6 @@ Anže
 Apače
 Apači
 Apnenik
-pri
 Boštanje
 Velik
 Trn
@@ -35,7 +33,6 @@ Arčelec
 Ardro
 Rak
 Ar
-ti
 Armeško
 Arnač
 Arnov
@@ -91,7 +88,6 @@ Beč
 Bečaj
 Bedenje
 Begunje
-na
 Gorenjsko
 Cerknica
 Bek
@@ -117,7 +113,6 @@ Beltinec
 Belvedur
 Benečija
 Benedikt
-v
 Slovenski
 gorica
 Benete
@@ -157,7 +152,6 @@ Biren
 Biserjane
 Bistra
 Bistrica
-ob
 Drava
 Sotla
 Tržič
