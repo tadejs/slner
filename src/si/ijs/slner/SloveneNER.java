@@ -23,12 +23,14 @@ import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
 import cc.mallet.fst.ViterbiWriter;
+import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
+import cc.mallet.pipe.tsf.FeaturesInWindow;
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
-import cc.mallet.pipe.tsf.TrieLexiconMembership;
+import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.share.mccallum.ner.TUI;
 import cc.mallet.types.Alphabet;
 import cc.mallet.types.CrossValidationIterator;
@@ -71,11 +73,11 @@ public class SloveneNER {
 	 "", null);
 	
 	static CommandOption.Boolean useFeatureInductionOption = new CommandOption.Boolean
-	(TUI.class, "use-feature-induction", "true|false", true, false,
+	(TUI.class, "use-feature-induction", "true|false", true, true,
 	 "Not use or use feature induction", null);
 
 	static CommandOption.Boolean clusterFeatureInductionOption = new CommandOption.Boolean
-	(TUI.class, "cluster-feature-induction", "true|false", true, false,
+	(TUI.class, "cluster-feature-induction", "true|false", true, true,
 	 "Cluster in feature induction", null);
 	
 	static final CommandOption.List commandOptions =
@@ -199,14 +201,16 @@ public class SloveneNER {
 	
 		System.out.println ("Read "+allData.size()+" instances");
 		
-		/*InstanceList[] splits = allData.split(new Random(), new double[]{.8,.2});
-		InstanceList trainingData = splits[0];
-		InstanceList testingData = splits[1];*/
-	
-		//InstanceList unlabeled = new InstanceList(p);
-		//unlabeled.addThruPipe(new SentenceIterator(DocReaders.openFile(new File("/home/tadej/workspace/slner/jos100k-train.xml.zip")).get(0)));
-		
+		//InstanceList[] splits = allData.split(new Random(), new double[]{.8,.2});
+		//InstanceList trainingData = splits[0];
+		//InstanceList testingData = splits[1];
 
+		InstanceList unlabeled = null;// new InstanceList(pipe);
+		//unlabeled.addThruPipe(new SentenceIterator(Doc.asOne(DocReaders.openDir(new File("jos1Mv1_1-xml/jos1M/")))));
+		
+		if (unlabeled != null) {
+			System.out.println("Read " + unlabeled.size() + " unlabeled instances");
+		}
 		/*TransducerTrainer crft = makeTrainer(trainingData);
 		
 		System.out.println("Training on "+trainingData.size()+" training instances, "+
@@ -214,14 +218,16 @@ public class SloveneNER {
 
 		evaluate(trainingData, testingData, crft);*/
 		
-		crossvalidate(allData, 5);
+		crossvalidate(allData, unlabeled, 10);
 		
 	}
 
-	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {{ }}); //-2,0}, {-1,0}, {-1,1}, {1}, {-1,2}, {-2,1}});//, {1},{2}});
-	}
 
+	public Pipe getPipe() throws FileNotFoundException {
+		return getPipe(new int[][] {{-1,1}, { -2,0 }, {-1}, {1}});
+		//return getPipe(new int[][] { {-2}, {-1}, {1}, {2}, {-1, 1} });
+		
+	}
 
 	public Pipe getPipe(int[][] offsets) throws FileNotFoundException {
 		Pipe p = new SerialPipes(new Pipe[] {
@@ -229,7 +235,7 @@ public class SloveneNER {
 				new RegexMatches ("INITCAP", Pattern.compile (CAPS+".*")),
 				new RegexMatches ("CAPITALIZED", Pattern.compile (CAPS+LOW+"*")),
 				new RegexMatches ("ALLCAPS", Pattern.compile (CAPS+"+")),
-//				new RegexMatches ("MIXEDCAPS", Pattern.compile ("[A-Z][a-z]+[A-Z][A-Za-z]*")),
+				new RegexMatches ("MIXEDCAPS", Pattern.compile ("[A-Z][a-z]+[A-Z][A-Za-z]*")),
 				new RegexMatches ("CONTAINSDIGITS", Pattern.compile (".*[0-9].*")),
 				new RegexMatches ("ALLDIGITS", Pattern.compile ("[0-9]+")),
 				new RegexMatches ("NUMERICAL", Pattern.compile ("[-0-9]+[\\.,]+[0-9\\.,]+")),
@@ -237,9 +243,9 @@ public class SloveneNER {
 //				new RegexMatches ("ROMAN", Pattern.compile ("[ivxdlcm]+|[IVXDLCM]+")),
 //				new RegexMatches ("MULTIDOTS", Pattern.compile ("\\.\\.+")),
 				new RegexMatches ("ENDSINDOT", Pattern.compile ("[^\\.]+.*\\.")),
-//				new RegexMatches ("CONTAINSDASH", Pattern.compile (ALPHANUM+"+-"+ALPHANUM+"*")),
+				new RegexMatches ("CONTAINSDASH", Pattern.compile (ALPHANUM+"+-"+ALPHANUM+"*")),
 				new RegexMatches ("ACRO", Pattern.compile ("[A-Z][A-Z\\.]*\\.[A-Z\\.]*")),
-//				new RegexMatches ("LONELYINITIAL", Pattern.compile (CAPS+"\\.")),
+				new RegexMatches ("LONELYINITIAL", Pattern.compile (CAPS+"\\.")),
 				new RegexMatches ("SINGLECHAR", Pattern.compile (ALPHA)),
 				new RegexMatches ("CAPLETTER", Pattern.compile ("[A-Z]")),
 				new RegexMatches ("PUNC", Pattern.compile (PUNT)),
@@ -251,25 +257,27 @@ public class SloveneNER {
 				new LemmaLexiconMembership( new File("lexicons/location-countries-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/location-int-cities-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/location-municipalities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt")),
-				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt"),true),
+				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), true),
 				new LemmaLexiconMembership( new File("lexicons/person-names-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl-female.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl-male.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-surnames-2-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-female-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-male-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
-				new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.lex"), false),
-				new TrieLexiconMembership(new File("lexicons/american-english"), true),
+				new LemmaLexiconMembership( new File("lexicons/dnevi-sl.txt"), true),
+				new LemmaLexiconMembership( new File("lexicons/meseci-sl.txt"), true),
+				//new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.txt"), false),
+				//new TrieLexiconMembership(new File("lexicons/american-english.txt"), true),
 				new OffsetConjunctions (offsets),
 				
-				/*(wordWindowFeatureOption.value > 0 ? 
+				(wordWindowFeatureOption.value > 0 ? 
 				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
-				 : (Pipe) new Noop()),*/
-				/*(charNGramsOption.value
-				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {3})
-				 : (Pipe) new Noop()),*/
+				 : (Pipe) new Noop()),
+				(charNGramsOption.value
+				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {2,3})
+				 : (Pipe) new Noop()),
 
 				//new PrintTokenSequenceFeatures(),
+				
 				new TokenSequence2FeatureVectorSequence (true, true)
 		});
 		return p;
@@ -277,7 +285,7 @@ public class SloveneNER {
 
 
 
-	public TransducerTrainer makeTrainer(InstanceList trainingData) {
+	public CRFTrainerByLabelLikelihood makeTrainer(InstanceList trainingData) {
 		// Print out all the target names
 		Alphabet targets = pipe.getTargetAlphabet();
 		/*System.out.print ("State labels:");
@@ -288,16 +296,23 @@ public class SloveneNER {
 		// Print out some feature information
 		System.out.println ("Number of features = "+pipe.getDataAlphabet().size());
 		
-		CRF crf = new CRF(pipe, null);
+		CRF crf = new CRF(pipe, null);//pipe.getDataAlphabet(), pipe.getTargetAlphabet());
+		//crf.addFullyConnectedStatesForLabels();
+		//crf.setWeightsDimensionAsIn(trainingData);
 		crf.addStatesForLabelsConnectedAsIn(trainingData);
 		
-		//CRFTrainerByStochasticGradient crft = new CRFTrainerByStochasticGradient(crf, 0.1);
+		
+		//CRFTrainerByStochasticGradient crft = new CRFTrainerByStochasticGradient(crf, 3.0);
 		//CRFTrainerByEntropyRegularization crft = new CRFTrainerByEntropyRegularization(crf);
-		CRFTrainerByLabelLikelihood crft = new CRFTrainerByLabelLikelihood(crf);
+		//crft.setGaussianPriorVariance(2);
+		//crft.setEntropyWeight(3);
+		//CRFTrainerByThreadedLabelLikelihood crft = new CRFTrainerByThreadedLabelLikelihood(crf, 2);
+		//CRFTrainerByLabelLikelihood crft = new CRFTrainerByLabelLikelihood(crf);
 		//crft.setUseSomeUnsupportedTrick(true);
-		crft.setUseSparseWeights(true);
+		//crft.setUseSparseWeights(true);
 		//crft.setUseHyperbolicPrior(true);
-		//CRFTrainerByL1LabelLikelihood crft = new CRFTrainerByL1LabelLikelihood(crf);
+		CRFTrainerByLabelLikelihood crft = new CRFTrainerByLabelLikelihood(crf);
+		crft.setUseSparseWeights(true);
 		//CRFTrainerByValueGradients crft = new CRFTrainerByValueGradients(crf, optimizableByValueGradientObjects);
 
 		/*for (int i = 0; i < crf.numStates(); i++) {
@@ -308,7 +323,7 @@ public class SloveneNER {
 		return crft;
 	}
 
-	public void crossvalidate(InstanceList data, int folds) throws IOException {
+	public void crossvalidate(InstanceList data, final InstanceList unlabeled, int folds) throws IOException {
 		CrossValidationIterator cxv = new CrossValidationIterator(data, folds);
 		Scores scores = new Scores();
 		ExecutorService x = Executors.newFixedThreadPool(16);
@@ -323,9 +338,11 @@ public class SloveneNER {
 			 
 			final File trainF = File.createTempFile("slner-pass"+pass, "train");
 			final File testF = File.createTempFile("slner-pass"+pass, "test");
+			//final File unlabeledF = File.createTempFile("slner-pass"+pass, "unlabeled");
 			
 			train.save(trainF);
 			test.save(testF);
+			//unlabeled.save(unlabeledF);
 			
 			
 			Future<Scores> scoresFut = x.submit(new Callable<Scores>() {
@@ -335,23 +352,36 @@ public class SloveneNER {
 					CRF crf = new CRF(pipe, null);
 					InstanceList train = InstanceList.load(trainF);
 					InstanceList test = InstanceList.load(testF);
+					//InstanceList unl = InstanceList.load(unlabeledF);
 					
 					crf.addStatesForLabelsConnectedAsIn(train);
-					TransducerTrainer crft = makeTrainer(train);
+					
+					CRFTrainerByLabelLikelihood crft = makeTrainer(train);
 					
 					GetDataEvaluator eval =
 						new GetDataEvaluator (new InstanceList[] {test},
 								new String[] {"Testing"},
 								new String[] {"osebno", "zemljepisno", "stvarno"},
 								new String[] {"osebno", "zemljepisno", "stvarno"});
+
+					crft.addEvaluator(eval);
 					
 					System.out.println("Training..");
-					while (crft.train(train, 15)) {
+					if (crft.train(train, 20)) {
+						System.out.println("Converged");
 						//GetDataEvaluator.Scores s = eval.evaluateGetScores(crft);
 						//System.out.println(s.toString());
 						//scores.addAll(s);
 					}
+					
+					
+					/*((CRFTrainerByLabelLikelihood) crft).trainWithFeatureInduction (train, null, test,
+							 eval, 99999,
+							 10, 99, 200, 0.5, true,
+							 new double[] {.1, .2, .5, .7});
+					*/
 					Scores s = eval.evaluateGetScores(crft);
+					
 					System.out.println("Finished fold");
 					return s;
 				}

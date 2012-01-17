@@ -173,7 +173,8 @@ public class GetDataEvaluator extends TransducerEvaluator {
 	@Override
 	public void evaluateInstanceList(TransducerTrainer transducer,
 			InstanceList instances, String description) {
-		throw new IllegalStateException();
+		Scores s = evaluateInstanceListGetScores(transducer, instances, description);
+		System.out.println(s);
 	}
 
 }

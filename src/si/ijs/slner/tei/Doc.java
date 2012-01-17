@@ -12,6 +12,18 @@ public class Doc {
 		sentences = new ArrayList<List<Token>>();
 	}
 	
+	public void add(Doc d) {
+		sentences.addAll(d.sentences);
+	}
+	
+	public static Doc asOne(List<Doc> lst) {
+		Doc d = new Doc();
+		for (Doc doc : lst) {
+			d.add(doc);
+		}
+		return d;
+	}
+	
 	protected List<List<Token>> sentences;
 	protected List<Token> lastSentence;
 	

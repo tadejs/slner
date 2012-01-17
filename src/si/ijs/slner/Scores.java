@@ -35,7 +35,7 @@ public class Scores extends LinkedHashMap<String, List<Double>> {
 	}
 	
 	public Map<String, Double> avg() {
-		Map<String, Double> m = new HashMap<String, Double>();
+		Map<String, Double> m = new LinkedHashMap<String, Double>();
 		for (Map.Entry<String, List<Double>> me : entrySet()) {
 			double sum = 0;
 			for (Double d : me.getValue()) {

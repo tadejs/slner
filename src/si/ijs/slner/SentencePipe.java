@@ -50,8 +50,8 @@ public class SentencePipe extends Pipe {
 				word = "";
 			}
 			label = t.getTokenClass();
-			if (label == null || "".equals(label)) {
-				label = "-";
+			if (label == null) {
+				label = "";//"-";
 			}
 			lemma = t.getLemma();
 			
@@ -98,11 +98,12 @@ public class SentencePipe extends Pipe {
 						case conjunction:
 						case particle:
 						//case verb:
+						//case adjective:
 						case residual:
 							features.add("W="+(lemma == null ? word : lemma)); break;
 					}
-					
 				}
+			
 				
 				switch (word.length()) {
 					case 3: features.add("Length=3"); break;
@@ -116,7 +117,7 @@ public class SentencePipe extends Pipe {
 				
 			} else if (t.getType() == Token.Type.c) {
 				features.add("Type=Punctuation");
-				features.add("W="+t.getLiteral());
+				//features.add("W="+t.getLiteral());
 			}
 			
 			for (String ftr : features) {

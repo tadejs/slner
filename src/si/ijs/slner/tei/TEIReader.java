@@ -230,7 +230,7 @@ public class TEIReader  {
 		TEI(start, "TEI"), 
 			text(new State[]{TEI, start}, "text"), 
 				body(text, "body"), 
-					div(body, "div"),
+					div(new State[] {body, start}, "div"),
 					p(new State[] {body, div}, "p"),
 						s(p, "s"),
 							c(s,"c"),
