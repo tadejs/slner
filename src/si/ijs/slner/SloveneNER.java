@@ -1,8 +1,14 @@
 package si.ijs.slner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -11,12 +17,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipException;
 
 import javax.xml.stream.XMLStreamException;
 
 import si.ijs.slner.tei.Doc;
 import si.ijs.slner.tei.DocReaders;
+import si.ijs.slner.tei.Token;
 import bsh.EvalError;
 import cc.mallet.fst.CRF;
 import cc.mallet.fst.CRFTrainerByLabelLikelihood;
@@ -27,11 +35,13 @@ import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
+import cc.mallet.pipe.TokenSequenceLowercase;
 import cc.mallet.pipe.tsf.FeaturesInWindow;
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
 import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.share.mccallum.ner.TUI;
+import cc.mallet.share.upenn.ner.LengthBins;
 import cc.mallet.types.Alphabet;
 import cc.mallet.types.CrossValidationIterator;
 import cc.mallet.types.Instance;
@@ -45,7 +55,7 @@ public class SloveneNER {
 
 	private static String CAPS = "[\\p{Lu}]";
 	private static String LOW = "[\\p{Ll}]";
-	private static String CAPSNUM = "[\\p{Lu}\\p{Nd}]";
+	//private static String CAPSNUM = "[\\p{Lu}\\p{Nd}]";
 	private static String ALPHA = "[\\p{Lu}\\p{Ll}]";
 	private static String ALPHANUM = "[\\p{Lu}\\p{Ll}\\p{Nd}]";
 	private static String PUNT = "[,\\.;:?!()]";
@@ -53,7 +63,9 @@ public class SloveneNER {
 	
 	static CommandOption.String inOption = new CommandOption.String
 	(TUI.class, "in", "e.g. corpus.xml", true, "", "Input file", null); 
-	
+		
+	static CommandOption.String outOption = new CommandOption.String
+	(TUI.class, "out", "e.g. model.ser.gz", false, "", "Output file", null); 
 	//(owner, name, argName, argRequired, defaultValue, shortdoc, longdoc)
 	
 	static CommandOption.String offsetsOption = new CommandOption.String
@@ -82,13 +94,14 @@ public class SloveneNER {
 	
 	static final CommandOption.List commandOptions =
 		new CommandOption.List (
-			"Training, testing and running a Chinese word segmenter.",
+			"Training, testing and running a Slovene named entity recognizer.",
 			new CommandOption[] {
 				/*gaussianVarianceOption,
 				hyperbolicSlopeOption,
 				hyperbolicSharpnessOption,
 				randomSeedOption,
 				labelGramOption,*/
+				outOption,
 				inOption,
 				wordWindowFeatureOption,
 				//useHyperbolicPriorOption,
@@ -105,8 +118,10 @@ public class SloveneNER {
 
 	protected Pipe pipe;
 	protected CRF model;
+	protected String homePath;
 	
-	public SloveneNER() {
+	public SloveneNER(String homePath) {
+		this.homePath = homePath;
 		try {
 			pipe = getPipe();
 		} catch (FileNotFoundException e) {
@@ -115,13 +130,39 @@ public class SloveneNER {
 		}
 	}
 	
+	public void load(InputStream in) throws IOException, ClassNotFoundException {
+		ObjectInputStream ois = new ObjectInputStream(in);
+		model = (CRF) ois.readObject();
+	}
+	
+	
+	public void save(OutputStream os) throws IOException {
+		ObjectOutputStream oos = new ObjectOutputStream(os);
+		oos.writeObject(model);
+		oos.flush();
+		oos.close();		
+	}
+	
 	public static void main(String[] args) throws EvalError, ZipException, IOException, XMLStreamException {
 		// TODO Auto-generated method stub
 		commandOptions.process (args);
 		//String outFile = args[1];
 
-		SloveneNER ner = new SloveneNER();
-		ner.trainTestEvaluation( inOption.value());
+		SloveneNER ner = new SloveneNER("");
+		
+		if (outOption.wasInvoked()) {
+			ner.train(inOption.value());
+			System.out.println("Saving to: " + outOption.value());
+			FileOutputStream out = new FileOutputStream ( outOption.value());
+			GZIPOutputStream gos = new GZIPOutputStream(out);
+			ner.save(gos);
+			gos.close();
+			out.close();
+			
+		} else {
+			ner.trainTestEvaluation( inOption.value());
+		}
+		
 		
 		
 	/*	ner.train(inOption.value());
@@ -159,7 +200,61 @@ public class SloveneNER {
 		return tags;
 	}
 	
+	public Iterable<List<String>> tag(final Iterable<List<Token>> instanceList) {
+		final InstanceList docInstances = new InstanceList(pipe);
+		docInstances.addThruPipe(new Iterator<Instance>() {
+			final Iterator<List<Token>> tokIt = instanceList.iterator();
+			int i = 0;
+			@Override
+			public boolean hasNext() {
+				return tokIt.hasNext();
+			}
 
+			@Override
+			public Instance next() {
+				List<Token> tokens = tokIt.next();
+				return new Instance(tokens, null, i++, tokens);
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+			
+		});
+		return new Iterable<List<String>>() {
+			@Override
+			public Iterator<List<String>> iterator() {
+				final Iterator<Instance> instIt = docInstances.iterator();
+				return new Iterator<List<String>>() {
+
+					@Override
+					public boolean hasNext() {
+						return instIt.hasNext();
+					}
+
+					@Override
+					public List<String> next() {
+						Instance inst = instIt.next();
+						Sequence<?> sentence = (Sequence<?>) inst.getData();
+						Sequence<?> tags = model.transduce(sentence);
+						List<String> tagList = new ArrayList<String>(tags.size());
+						for (int i = 0; i < tags.size(); i++) {
+							tagList.add((String) tags.get(i));
+						}
+						return tagList;
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+		
+	}
+	
 	public void train(String corpusFile) {
 		Doc d = null;
 		try {
@@ -174,7 +269,7 @@ public class SloveneNER {
 		InstanceList trainingData = new InstanceList(pipe);
 		trainingData.addThruPipe(new SentenceIterator(d));
 		TransducerTrainer trainer = makeTrainer(trainingData);
-		while (trainer.train(trainingData, 10)) {
+		if (trainer.train(trainingData, 30)) {
 			
 		} 
 		model = (CRF) trainer.getTransducer();
@@ -208,9 +303,9 @@ public class SloveneNER {
 		InstanceList unlabeled = null;// new InstanceList(pipe);
 		//unlabeled.addThruPipe(new SentenceIterator(Doc.asOne(DocReaders.openDir(new File("jos1Mv1_1-xml/jos1M/")))));
 		
-		if (unlabeled != null) {
+		/*if (unlabeled != null) {
 			System.out.println("Read " + unlabeled.size() + " unlabeled instances");
-		}
+		}*/
 		/*TransducerTrainer crft = makeTrainer(trainingData);
 		
 		System.out.println("Training on "+trainingData.size()+" training instances, "+
@@ -224,8 +319,8 @@ public class SloveneNER {
 
 
 	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {{-1,1}, { -2,0 }, {-1}, {1}});
-		//return getPipe(new int[][] { {-2}, {-1}, {1}, {2}, {-1, 1} });
+		//return getPipe(new int[][] {{-1,1}, { -2,0 }, {-1}, {1}});
+		return getPipe(new int[][] { {-2}, {-1}, {1}, {2}, {-1, 1} });
 		
 	}
 
@@ -253,25 +348,27 @@ public class SloveneNER {
 				new RegexMatches ("LOWER", Pattern.compile (LOW+"+")),
 				new RegexMatches ("MIXEDCAPS", Pattern.compile ("[A-Z]+[a-z]+[A-Z]+[a-z]*")),
 				//new TokenText ("W="),
-				new LemmaLexiconMembership( new File("lexicons/location-cities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/location-countries-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/location-int-cities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/location-municipalities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt"),true),
-				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), true),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-female-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-male-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/dnevi-sl.txt"), true),
-				new LemmaLexiconMembership( new File("lexicons/meseci-sl.txt"), true),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/location-cities-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/location-countries-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/location-int-cities-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/location-municipalities-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/organization-tokens-sl.txt"),true),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/person-honorifics-sl.txt"), true),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/person-names-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/person-names-female-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/person-names-male-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/person-surnames-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/dnevi-sl.txt"), true),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/meseci-sl.txt"), true),
+				new LengthBins("Length", new int[] {1,2,3,5,10}),
 				//new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.txt"), false),
 				//new TrieLexiconMembership(new File("lexicons/american-english.txt"), true),
 				new OffsetConjunctions (offsets),
+				new TokenSequenceLowercase(),
 				
-				(wordWindowFeatureOption.value > 0 ? 
+				/*(wordWindowFeatureOption.value > 0 ? 
 				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
-				 : (Pipe) new Noop()),
+				 : (Pipe) new Noop()),*/
 				(charNGramsOption.value
 				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {2,3})
 				 : (Pipe) new Noop()),
@@ -297,6 +394,7 @@ public class SloveneNER {
 		System.out.println ("Number of features = "+pipe.getDataAlphabet().size());
 		
 		CRF crf = new CRF(pipe, null);//pipe.getDataAlphabet(), pipe.getTargetAlphabet());
+	
 		//crf.addFullyConnectedStatesForLabels();
 		//crf.setWeightsDimensionAsIn(trainingData);
 		crf.addStatesForLabelsConnectedAsIn(trainingData);

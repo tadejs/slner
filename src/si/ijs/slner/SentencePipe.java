@@ -105,16 +105,6 @@ public class SentencePipe extends Pipe {
 				}
 			
 				
-				switch (word.length()) {
-					case 3: features.add("Length=3"); break;
-					case 2: features.add("Length=2"); break;
-					case 1: features.add("Length=1"); break;
-					default: break;
-				}
-				
-				
-				
-				
 			} else if (t.getType() == Token.Type.c) {
 				features.add("Type=Punctuation");
 				//features.add("W="+t.getLiteral());
