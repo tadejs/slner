@@ -93,7 +93,7 @@ public class SentencePipe extends Pipe {
 					PosDefs.decode(t.getPos(), features);
 					
 					PosDefs.Type posType = PosDefs.getType(t.getPos());
-					switch (posType) {
+					/*switch (posType) {
 						case preposition:
 						case conjunction:
 						case particle:
@@ -101,7 +101,7 @@ public class SentencePipe extends Pipe {
 						//case adjective:
 						case residual:
 							features.add("W="+(lemma == null ? word : lemma)); break;
-					}
+					}*/
 				}
 			
 				

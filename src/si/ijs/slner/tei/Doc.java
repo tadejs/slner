@@ -3,7 +3,9 @@ package si.ijs.slner.tei;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Doc {
 	
@@ -44,17 +46,23 @@ public class Doc {
 		for (int i = 0; i < sentences.size(); i++) {
 			List<Token> sentence = sentences.get(i);
 			List<String> senTags = tags.get(i);
-			String prevTag = "-";
+			String prevTag = "";
+			int k = 0;
 			for (int j = 0; j < sentence.size(); j++) {
-				String tag = senTags.get(j);
+				
 				Token tok = sentence.get(j);
+				if (tok.getType() == Token.Type.S)
+					continue;
+				
+				String tag = senTags.get(k++);
+				
 				String tokStr = tok.getLiteral();
-				if ("-".equals(tag)) {
-					if (!"-".equals(prevTag)) {
+
+				if ("".equals(tag)) {
+					if (!"".equals(prevTag)) {
 						w.write("</" + prevTag + ">");
 						w.write(' ');
 					}
-					
 					w.write(tokStr);
 					w.write(' ');
 
@@ -68,10 +76,11 @@ public class Doc {
 						w.write(' ');
 					}
 				}
+				
 				prevTag = tag;
 			}
 			
-			if (!"-".equals(prevTag)) {
+			if (!"".equals(prevTag)) {
 				w.write("</" + prevTag + ">");
 			}
 			w.write('\n');
@@ -79,6 +88,102 @@ public class Doc {
 	}
 	
 
+	protected boolean empty(String tag) {
+		return "".equals(tag);
+	}
+	
+
+	protected String trimmed(StringBuilder sb) {
+		while (sb.charAt(sb.length() - 1) == ' ') {
+			sb.setLength(sb.length() - 1);
+		}
+		return sb.toString();
+	}
+	public void printEntities(List<List<String>> tags, Writer w) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		Map<String, List<String>> entities = new HashMap<String, List<String>>();
+		entities.put("stvarno", new ArrayList<String>());
+		entities.put("zemljepisno", new ArrayList<String>());
+		entities.put("osebno", new ArrayList<String>());
+		int i = 0;
+		List<List<Token>> tokens = new ArrayList<List<Token>>();
+		for (List<Token> list : this.sentences) {
+			List<Token> toks = new ArrayList<Token>(list.size());
+			for (Token token : list) {
+				if (token.type == Token.Type.S)
+					continue;
+				toks.add(token);
+			}
+			tokens.add(toks);
+		}
+        StringBuilder displayName = new StringBuilder(128);
+		for (List<String> sentenceTags : tags) {
+			displayName.setLength(0);
+	        String prevTag = "";
+	        // starting position of new annotation
+	        int start = -1;
+	        // length of new annotation
+	        int len = 0;
+	        List<Token> sentence = tokens.get(i++);
+	        
+	        for (int j = 0; j < sentenceTags.size(); j++) {
+	        	String tag = (String) sentenceTags.get(j);
+	        	Token tok = sentence.get(j);
+	        	String tokenText = tok.getLiteral();
+	        	if (empty(tag)) {
+	        		if (empty(prevTag)) {
+	        			// no tag anywhere, do nothing	        			
+	        		} else {
+	        			// previous tag ended
+	        			entities.get(prevTag).add(trimmed(displayName));
+	        			displayName.setLength(0);
+	        			start = -1;
+	        			len = 0;	
+	        		}
+	        	} else {
+	        		// we have a tag right now
+	        		if (empty(prevTag)) {
+	        			// new tag started 
+	        			start = j;
+		        		displayName.append(tokenText);
+		        		displayName.append(' ');
+		        		len++;
+	        		} else {
+	        			// still have tag
+	        			if (tag.equals(prevTag)) {
+	        				// continue same tag
+	        			} else {
+	        				// tag has changed - end old & start new
+	        				// previous tag ended
+	        				entities.get(prevTag).add(trimmed(displayName));
+		        			// reset and start new tag
+		        			displayName.setLength(0);
+		        			start = j;
+		        			len = 0;
+	        			}
+	        			len++;
+    	        		displayName.append(tokenText);
+    	        		displayName.append(' ');      
+	        		}
+	        	}
+	        	prevTag = tag;
+	        }
+	        
+	        if (len > 0) {
+	        	// add remainder
+	        	entities.get(prevTag).add(trimmed(displayName));
+	        }
+	    }
+		
+		for (String type : entities.keySet()) {
+			for (String enti : entities.get(type)) {
+				w.write(type);
+				w.write('\t');
+				w.write(enti);
+				w.write('\n');
+			}
+		}
+	}
 }
 
 

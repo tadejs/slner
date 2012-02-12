@@ -1,12 +1,15 @@
 package si.ijs.slner;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -17,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipException;
 
@@ -36,7 +40,6 @@ import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
 import cc.mallet.pipe.TokenSequenceLowercase;
-import cc.mallet.pipe.tsf.FeaturesInWindow;
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
 import cc.mallet.pipe.tsf.TokenTextCharNGrams;
@@ -66,6 +69,13 @@ public class SloveneNER {
 		
 	static CommandOption.String outOption = new CommandOption.String
 	(TUI.class, "out", "e.g. model.ser.gz", false, "", "Output file", null); 
+	
+
+	static CommandOption.String inModelOption = new CommandOption.String
+	(TUI.class, "in-model", "e.g. model.ser.gz", false, "", "Output file", null);
+	
+	static CommandOption.String outModelOption = new CommandOption.String
+	(TUI.class, "out-model", "e.g. model.ser.gz", false, "", "Output file", null); 
 	//(owner, name, argName, argRequired, defaultValue, shortdoc, longdoc)
 	
 	static CommandOption.String offsetsOption = new CommandOption.String
@@ -103,6 +113,8 @@ public class SloveneNER {
 				labelGramOption,*/
 				outOption,
 				inOption,
+				inModelOption,
+				outModelOption,
 				wordWindowFeatureOption,
 				//useHyperbolicPriorOption,
 				useFeatureInductionOption,
@@ -143,23 +155,46 @@ public class SloveneNER {
 		oos.close();		
 	}
 	
-	public static void main(String[] args) throws EvalError, ZipException, IOException, XMLStreamException {
+	public static void main(String[] args) throws EvalError, ZipException, IOException, XMLStreamException, ClassNotFoundException {
 		// TODO Auto-generated method stub
 		commandOptions.process (args);
 		//String outFile = args[1];
 
 		SloveneNER ner = new SloveneNER("");
 		
-		if (outOption.wasInvoked()) {
+		if (outModelOption.wasInvoked()) {
 			ner.train(inOption.value());
-			System.out.println("Saving to: " + outOption.value());
-			FileOutputStream out = new FileOutputStream ( outOption.value());
+			System.out.println("Saving to: " + outModelOption.value());
+			FileOutputStream out = new FileOutputStream ( outModelOption.value());
 			GZIPOutputStream gos = new GZIPOutputStream(out);
 			ner.save(gos);
 			gos.close();
 			out.close();
 			
+		} else if (outOption.wasInvoked()) {
+			FileInputStream in = new FileInputStream(inModelOption.value());
+			GZIPInputStream gis = new GZIPInputStream(in);
+			ner.load(gis);
+			gis.close();
+			
+
+			
+			Doc d = DocReaders.openFile(new File(inOption.value())).get(0);
+			
+			Iterable<List<String>> tags = ner.tag(d.getSentences());
+			List<List<String>> tagList= new ArrayList<List<String>>();
+			for (List<String> list : tags) {
+				tagList.add(list);
+			}
+			Writer w = new FileWriter(outOption.value());
+			d.printTagged(tagList, w);
+			d.printEntities(tagList, w);
+			w.close();
+			
+		
+			
 		} else {
+			System.out.println("evaluating");
 			ner.trainTestEvaluation( inOption.value());
 		}
 		
@@ -320,7 +355,7 @@ public class SloveneNER {
 
 	public Pipe getPipe() throws FileNotFoundException {
 		//return getPipe(new int[][] {{-1,1}, { -2,0 }, {-1}, {1}});
-		return getPipe(new int[][] { {-2}, {-1}, {1}, {2}, {-1, 1} });
+		return getPipe(new int[][] { /*{-2,0}, */{-2}, {-1}, {1}, {2}/*, {-1, 1} */});
 		
 	}
 
@@ -335,7 +370,7 @@ public class SloveneNER {
 				new RegexMatches ("ALLDIGITS", Pattern.compile ("[0-9]+")),
 				new RegexMatches ("NUMERICAL", Pattern.compile ("[-0-9]+[\\.,]+[0-9\\.,]+")),
 				new RegexMatches ("ALPHNUMERIC", Pattern.compile ("[A-Za-z0-9]+")),
-//				new RegexMatches ("ROMAN", Pattern.compile ("[ivxdlcm]+|[IVXDLCM]+")),
+				new RegexMatches ("ROMAN", Pattern.compile ("[ivxdlcm]+|[IVXDLCM]+")),
 //				new RegexMatches ("MULTIDOTS", Pattern.compile ("\\.\\.+")),
 				new RegexMatches ("ENDSINDOT", Pattern.compile ("[^\\.]+.*\\.")),
 				new RegexMatches ("CONTAINSDASH", Pattern.compile (ALPHANUM+"+-"+ALPHANUM+"*")),
@@ -352,6 +387,7 @@ public class SloveneNER {
 				new LemmaLexiconMembership( new File(homePath + "lexicons/location-countries-sl.txt"), false),
 				new LemmaLexiconMembership( new File(homePath + "lexicons/location-int-cities-sl.txt"), false),
 				new LemmaLexiconMembership( new File(homePath + "lexicons/location-municipalities-sl.txt"), false),
+				new LemmaLexiconMembership( new File(homePath + "lexicons/location-tokens-sl.txt"), false),
 				new LemmaLexiconMembership( new File(homePath + "lexicons/organization-tokens-sl.txt"),true),
 				new LemmaLexiconMembership( new File(homePath + "lexicons/person-honorifics-sl.txt"), true),
 				new LemmaLexiconMembership( new File(homePath + "lexicons/person-names-sl.txt"), false),
@@ -364,14 +400,14 @@ public class SloveneNER {
 				//new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.txt"), false),
 				//new TrieLexiconMembership(new File("lexicons/american-english.txt"), true),
 				new OffsetConjunctions (offsets),
-				new TokenSequenceLowercase(),
+				//new TokenSequenceLowercase(),
 				
 				/*(wordWindowFeatureOption.value > 0 ? 
 				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
 				 : (Pipe) new Noop()),*/
-				(charNGramsOption.value
+				/*(charNGramsOption.value
 				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {2,3})
-				 : (Pipe) new Noop()),
+				 : (Pipe) new Noop()),*/
 
 				//new PrintTokenSequenceFeatures(),
 				
@@ -424,7 +460,7 @@ public class SloveneNER {
 	public void crossvalidate(InstanceList data, final InstanceList unlabeled, int folds) throws IOException {
 		CrossValidationIterator cxv = new CrossValidationIterator(data, folds);
 		Scores scores = new Scores();
-		ExecutorService x = Executors.newFixedThreadPool(16);
+		ExecutorService x = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		
 		List<Future<Scores>> promises = new ArrayList<Future<Scores>>();
 		

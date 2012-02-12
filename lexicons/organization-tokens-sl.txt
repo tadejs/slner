@@ -1,4 +1,4 @@
-Zavod
+﻿Zavod
 Urad
 Ministrstvo
 Institut
@@ -6,3 +6,15 @@ Inštitut
 fakulteta
 univerza
 gostilna
+center
+uprava
+zveza
+zbornica
+akademija
+šola
+družba
+zbor
+komisija
+banka
+galerija
+stranka
