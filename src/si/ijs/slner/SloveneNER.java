@@ -36,7 +36,6 @@ import cc.mallet.fst.CRF;
 import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
-import cc.mallet.fst.ViterbiWriter;
 import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
@@ -47,7 +46,6 @@ import cc.mallet.pipe.tsf.RegexMatches;
 import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.share.mccallum.ner.TUI;
 import cc.mallet.share.upenn.ner.LengthBins;
-import cc.mallet.types.Alphabet;
 import cc.mallet.types.CrossValidationIterator;
 import cc.mallet.types.Instance;
 import cc.mallet.types.InstanceList;
@@ -151,15 +149,22 @@ public class SloveneNER {
 			e.printStackTrace();
 		}
 	}
-
+	
+	public SloveneNER(InputStream is) throws ClassNotFoundException, IOException {
+		load(is);
+	}
+	
 	public void load(InputStream in) throws IOException, ClassNotFoundException {
 		ObjectInputStream ois = new ObjectInputStream(in);
 		model = (CRF) ois.readObject();
+		pipe = (Pipe) ois.readObject();
+
 	}
 
 	public void save(OutputStream os) throws IOException {
 		ObjectOutputStream oos = new ObjectOutputStream(os);
 		oos.writeObject(model);
+		oos.writeObject(pipe);
 		oos.flush();
 		oos.close();
 	}
@@ -318,17 +323,6 @@ public class SloveneNER {
 	public void trainTestEvaluation(String inFile) throws EvalError,
 			ZipException, IOException, XMLStreamException {
 
-		String offsetsString = offsetsOption.value.replace('[', '{').replace(
-				']', '}');
-		int[][] offsets = (int[][]) CommandOption.getInterpreter().eval(
-				"new int[][] " + offsetsString);
-
-		String capOffsetsString = capOffsetsOption.value.replace('[', '{')
-				.replace(']', '}');
-		int[][] capOffsets = null;
-		if (capOffsetsString.length() > 0)
-			capOffsets = (int[][]) CommandOption.getInterpreter().eval(
-					"new int[][] " + capOffsetsString);
 
 		Doc d = DocReaders.openFile(new File(inFile)).get(0);
 
@@ -469,13 +463,6 @@ public class SloveneNER {
 	}
 
 	public CRFTrainerByLabelLikelihood makeTrainer(InstanceList trainingData) {
-		// Print out all the target names
-		Alphabet targets = pipe.getTargetAlphabet();
-		/*
-		 * System.out.print ("State labels:"); for (int i = 0; i <
-		 * targets.size(); i++) System.out.print (" " +
-		 * targets.lookupObject(i)); System.out.println ("");
-		 */
 
 		// Print out some feature information
 		System.out.println("Number of features = "
@@ -660,17 +647,16 @@ public class SloveneNER {
 
 	}
 
-	public void evaluate(InstanceList trainingData, InstanceList testingData,
-			TransducerTrainer crft) {
-		MultiSegmentationEvaluator eval = new MultiSegmentationEvaluator(
-				new InstanceList[] { trainingData, testingData }, new String[] {
-						"Training", "Testing" }, new String[] { "osebno",
-						"zemljepisno", "stvarno"/* , "PROD" */}, new String[] {
-						"osebno", "zemljepisno", "stvarno"/* , "PROD" */});
-		ViterbiWriter vw = new ViterbiWriter("out", new InstanceList[] {
-				trainingData, testingData }, new String[] { "Training",
-				"Testing" });
-
+	public void evaluate(InstanceList trainingData,
+			InstanceList testingData,TransducerTrainer crft) {
+		MultiSegmentationEvaluator eval =
+			new MultiSegmentationEvaluator (new InstanceList[] {trainingData, testingData},
+					new String[] {"Training", "Testing"},
+					new String[] {"osebno", "zemljepisno", "stvarno"/*, "PROD"*/},
+					new String[] {"osebno", "zemljepisno", "stvarno"/*, "PROD"*/});
+		/*ViterbiWriter vw = new ViterbiWriter ("out",
+				new InstanceList[] {trainingData, testingData}, new String[] {"Training", "Testing"});*/
+			
 		if (useFeatureInductionOption.value) {
 			if (clusterFeatureInductionOption.value)
 				((CRFTrainerByLabelLikelihood) crft).trainWithFeatureInduction(

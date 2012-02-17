@@ -100,7 +100,6 @@ public class Doc {
 		return sb.toString();
 	}
 	public void printEntities(List<List<String>> tags, Writer w) throws IOException {
-		StringBuilder sb = new StringBuilder();
 		Map<String, List<String>> entities = new HashMap<String, List<String>>();
 		entities.put("stvarno", new ArrayList<String>());
 		entities.put("zemljepisno", new ArrayList<String>());
@@ -121,7 +120,6 @@ public class Doc {
 			displayName.setLength(0);
 	        String prevTag = "";
 	        // starting position of new annotation
-	        int start = -1;
 	        // length of new annotation
 	        int len = 0;
 	        List<Token> sentence = tokens.get(i++);
@@ -137,14 +135,12 @@ public class Doc {
 	        			// previous tag ended
 	        			entities.get(prevTag).add(trimmed(displayName));
 	        			displayName.setLength(0);
-	        			start = -1;
 	        			len = 0;	
 	        		}
 	        	} else {
 	        		// we have a tag right now
 	        		if (empty(prevTag)) {
 	        			// new tag started 
-	        			start = j;
 		        		displayName.append(tokenText);
 		        		displayName.append(' ');
 		        		len++;
@@ -158,7 +154,6 @@ public class Doc {
 	        				entities.get(prevTag).add(trimmed(displayName));
 		        			// reset and start new tag
 		        			displayName.setLength(0);
-		        			start = j;
 		        			len = 0;
 	        			}
 	        			len++;

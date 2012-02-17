@@ -57,13 +57,13 @@ public class GetDataEvaluator extends TransducerEvaluator {
 			numTrueSegments[n] = numPredictedSegments[n] = numCorrectSegments[n] = 0;
 		for (int i = 0; i < data.size(); i++) {
 			Instance instance = data.get(i);
-			Sequence input = (Sequence) instance.getData();
+			Sequence<?> input = (Sequence<?>) instance.getData();
 			// String tokens = null;
 			// if (instance.getSource() != null)
 			// tokens = (String) instance.getSource().toString();
-			Sequence trueOutput = (Sequence) instance.getTarget();
+			Sequence<?> trueOutput = (Sequence<?>) instance.getTarget();
 			assert (input.size() == trueOutput.size());
-			Sequence predOutput = model.transduce(input);
+			Sequence<?> predOutput = model.transduce(input);
 			assert (predOutput.size() == trueOutput.size());
 			int trueStart, predStart; // -1 for non-start, otherwise index into
 										// segmentStartTag
