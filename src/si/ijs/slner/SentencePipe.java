@@ -91,16 +91,17 @@ public class SentencePipe extends Pipe {
 			if (t.getType() == Token.Type.w) {
 				if (t.getPos() != null) { 
 					PosDefs.decode(t.getPos(), features);
-					
 					//PosDefs.Type posType = PosDefs.getType(t.getPos());
 					/*switch (posType) {
 						case preposition:
 						case conjunction:
 						case particle:
+
 						//case verb:
+					//case noun:
 						//case adjective:
-						case residual:
-							features.add("W="+(lemma == null ? word : lemma)); break;
+						//case residual:
+						//	features.add("W="+(lemma == null ? word : lemma)); break;
 					}*/
 				}
 			
