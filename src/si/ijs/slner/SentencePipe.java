@@ -6,7 +6,6 @@ import java.util.regex.Pattern;
 
 import si.ijs.slner.tei.PosDefs;
 import si.ijs.slner.tei.Token;
-import si.ijs.slner.tei.TsvReader;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.types.Instance;
 import cc.mallet.types.LabelAlphabet;
@@ -32,6 +31,7 @@ public class SentencePipe extends Pipe {
 
 	public Instance pipe (Instance carrier)
 	{
+		@SuppressWarnings("unchecked")
 		List<Token> tokens = (List<Token>) carrier.getData();
 		TokenSequence data = new TokenSequence (tokens.size());
 		LabelSequence target = new LabelSequence ((LabelAlphabet)getTargetAlphabet(), tokens.size());
@@ -39,7 +39,7 @@ public class SentencePipe extends Pipe {
 		StringBuilder source = saveSrc ? new StringBuilder() : null;
 		
 		
-		String word, lemma, tag, phrase, label;
+		String word, lemma, label;
 		boolean first = true;
 		for (Token t : tokens) {
 			if (t.getType() == Token.Type.S)
@@ -92,7 +92,7 @@ public class SentencePipe extends Pipe {
 				if (t.getPos() != null) { 
 					PosDefs.decode(t.getPos(), features);
 					
-					PosDefs.Type posType = PosDefs.getType(t.getPos());
+					//PosDefs.Type posType = PosDefs.getType(t.getPos());
 					/*switch (posType) {
 						case preposition:
 						case conjunction:

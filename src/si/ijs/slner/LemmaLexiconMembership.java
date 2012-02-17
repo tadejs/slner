@@ -74,8 +74,9 @@ public class LemmaLexiconMembership extends Pipe {
 		out.writeBoolean (ignoreCase);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void readObject (ObjectInputStream in) throws IOException, ClassNotFoundException {
-		int version = in.readInt ();
+		/*int version = */in.readInt ();
 		this.name = (String) in.readObject();
 		this.lexicon = (gnu.trove.THashSet<String>) in.readObject();
 		this.ignoreCase = in.readBoolean();
