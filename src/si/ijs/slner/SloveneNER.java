@@ -413,8 +413,8 @@ public class SloveneNER {
 								false),
 						new LemmaLexiconMembership(new File(homePath
 								+ "lexicons/location-tokens-sl.txt"), true),
-						new LemmaLexiconMembership(new File(homePath
-								+ "lexicons/location-all.txt"), true),
+						//new LemmaLexiconMembership(new File(homePath
+						//		+ "lexicons/location-all.txt"), true),
 						new LemmaLexiconMembership(new File(homePath
 								+ "lexicons/organization-tokens-sl.txt"), true),
 						new LemmaLexiconMembership(new File(homePath
@@ -427,16 +427,16 @@ public class SloveneNER {
 								+ "lexicons/person-names-male-sl.txt"), false),
 						new LemmaLexiconMembership(new File(homePath
 								+ "lexicons/person-surnames-sl.txt"), false),
-						new LemmaLexiconMembership(new File(homePath
-								+ "lexicons/person-allnames.txt"), true),
+					//new LemmaLexiconMembership(new File(homePath
+						//		+ "lexicons/person-allnames.txt"), true),
 						/*
 						 * new LemmaLexiconMembership( new File(homePath +
 						 * "lexicons/dnevi-sl.txt"), true), new
 						 * LemmaLexiconMembership( new File(homePath +
 						 * "lexicons/meseci-sl.txt"), true),
 						 */
-						new LemmaLexiconMembership(new File(homePath
-								+ "lexicons/time-sl.txt"), true),
+						//new LemmaLexiconMembership(new File(homePath
+						//		+ "lexicons/time-sl.txt"), true),
 						new LengthBins("Length", new int[] { 1, 2, 3, 5, 10 }),
 						// new LemmaTrieLexiconMembership( new
 						// File("lexicons/mte-sl.txt"), false),

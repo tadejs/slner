@@ -236,6 +236,8 @@ public class TEIReader {
 							c(s,"c"),
 							S(s,"S"),
 							w(s,"w"),
+							links(s, "links"),
+								link(links, "link"),
 							chunks(s, "chunks"),
 								chunk(chunks, "chunk");
 		
