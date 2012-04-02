@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project slner with Jar-in-Jar Loader">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="C:/Users/Tadej/workspace/slner/slner-all.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="si.ijs.slner.SloveneNER"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ mallet-deps.jar mallet.jar"/>
+            </manifest>
+            <zipfileset src="jar-in-jar-loader.zip"/>
+            <fileset dir="C:/Users/Tadej/workspace/slner/bin"/>
+            <zipfileset dir="C:\Users\Tadej\workspace\slner\lib" includes="mallet-deps.jar"/>
+            <zipfileset dir="C:\Users\Tadej\workspace\slner\lib" includes="mallet.jar"/>
+        </jar>
+    </target>
+</project>

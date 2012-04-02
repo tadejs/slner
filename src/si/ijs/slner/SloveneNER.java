@@ -444,7 +444,9 @@ public class SloveneNER {
 						// File("lexicons/american-english.txt"), true),
 						new OffsetConjunctions(offsets),
 						new TokenSequenceLowercase(),
-
+							
+						// TODO: "equal morpho feature as nbr - agreement!"
+						 
 						/*
 						 * (wordWindowFeatureOption.value > 0 ? (Pipe) new
 						 * FeaturesInWindow ("WINDOW=",
