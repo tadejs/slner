@@ -36,6 +36,9 @@ public class PosDefs {
 	}
 
 	public static void decode(String posTag, List<String> features) {
+		if (posTag.length() == 0) {
+			return;
+		}
 		switch(getType(posTag)) {
 			case noun: decodeNoun(posTag, features); break;
 			case verb: decodeVerb(posTag, features); break;
