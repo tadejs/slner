@@ -10,7 +10,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -36,24 +35,15 @@ import cc.mallet.fst.CRF;
 import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
-<<<<<<< HEAD
-import cc.mallet.fst.ViterbiWriter;
-=======
->>>>>>> 831629211d78a67355ebd1d97b0027aeffbd4fb6
 import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
-<<<<<<< HEAD
-import cc.mallet.pipe.tsf.FeaturesInWindow;
-=======
-import cc.mallet.pipe.TokenSequenceLowercase;
->>>>>>> 831629211d78a67355ebd1d97b0027aeffbd4fb6
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
 import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.share.mccallum.ner.TUI;
-import cc.mallet.share.upenn.ner.LengthBins;
+import cc.mallet.types.Alphabet;
 import cc.mallet.types.CrossValidationIterator;
 import cc.mallet.types.Instance;
 import cc.mallet.types.InstanceList;
@@ -362,7 +352,7 @@ public class SloveneNER {
 		 * evaluate(trainingData, testingData, crft);
 		 */
 
-		crossvalidate(allData, unlabeled, 10);
+		crossvalidate(allData, 10);
 
 	}
 
@@ -406,8 +396,8 @@ public class SloveneNER {
 				new LemmaLexiconMembership( new File("lexicons/person-names-male-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-2-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/meseci.txt"), true),
-				new LemmaLexiconMembership( new File("lexicons/dnevi.txt"), true),
+				new LemmaLexiconMembership( new File("lexicons/meseci-sl.txt"), true),
+				new LemmaLexiconMembership( new File("lexicons/dnevi-sl.txt"), true),
 				//new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.txt"), false),
 				//new TrieLexiconMembership(new File("lexicons/american-english.txt"), true),
 				new OffsetConjunctions (offsets),
@@ -428,11 +418,6 @@ public class SloveneNER {
 
 	public CRFTrainerByLabelLikelihood makeTrainer(InstanceList trainingData) {
 
-		// Print out some feature information
-		System.out.println("Number of features = "
-				+ pipe.getDataAlphabet().size());
-
-	public TransducerTrainer makeTrainer(InstanceList trainingData) {
 		// Print out all the target names
 		Alphabet targets = pipe.getTargetAlphabet();
 		/*System.out.print ("State labels:");
