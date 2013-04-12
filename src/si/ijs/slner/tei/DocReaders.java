@@ -40,30 +40,40 @@ public class DocReaders {
 			Enumeration<? extends ZipEntry> zfiles = zf.entries();
 			while (zfiles.hasMoreElements()) {
 				ZipEntry ze = zfiles.nextElement();
+				InputStream zis = zf.getInputStream(ze);
 				String fNm = ze.getName();
-				if (fNm.endsWith(".xml")) {
-					InputStream is = new BufferedInputStream(zf.getInputStream(ze));
-					docs.add(openTEIStream(is));
-					is.close();
-				} else if (fNm.endsWith(".tsv")) {
-					InputStream is = new BufferedInputStream(zf.getInputStream(ze));
-					docs.add(openTsvStream(is));
-					is.close();
-				}
+				openStream(docs, zis, fNm);
 			}
 			zf.close();
-		} else if (f.getName().endsWith(".xml")) {
-			InputStream is = new BufferedInputStream(new FileInputStream(f));
-			docs.add(openTEIStream(is));
-			is.close();
-		} else if (f.getName().endsWith(".tsv")) {
-			InputStream is = new BufferedInputStream(new FileInputStream(f));
-			docs.add(openTsvStream(is));
-			is.close();
+		} else {
+			InputStream fis = new FileInputStream(f);
+			openStream(docs, fis, f.getName());
 		}
+			
 		return docs;
 	}
 	
+	public static  List<Doc> openDir(File dir) throws ZipException, IOException, XMLStreamException {
+		List<Doc> docs = new ArrayList<Doc>();
+		
+		for (File f : dir.listFiles()) {
+			docs.addAll(openFile(f));
+		}
+		return docs;
+	}
+
+	private static void openStream(List<Doc> docs, InputStream zis, String fNm)
+			throws XMLStreamException, IOException {
+		if (fNm.endsWith(".xml")) {
+			InputStream is = new BufferedInputStream(zis);
+			docs.add(openTEIStream(is));
+			is.close();
+		} else if (fNm.endsWith(".tsv")) {
+			InputStream is = new BufferedInputStream(zis);
+			docs.add(openTsvStream(is));
+			is.close();
+		}
+	}
 	
 	public static Doc openTsvStream(InputStream inputStream) throws IOException {
 		TsvReader rdr = new TsvReader();

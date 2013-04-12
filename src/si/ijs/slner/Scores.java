@@ -1,7 +1,6 @@
 package si.ijs.slner;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,7 @@ public class Scores extends LinkedHashMap<String, List<Double>> {
 	}
 	
 	public Map<String, Double> avg() {
-		Map<String, Double> m = new HashMap<String, Double>();
+		Map<String, Double> m = new LinkedHashMap<String, Double>();
 		for (Map.Entry<String, List<Double>> me : entrySet()) {
 			double sum = 0;
 			for (Double d : me.getValue()) {

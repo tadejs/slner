@@ -1,0 +1,10 @@
+dolina
+republika
+trg
+cesta
+ulica
+mesto
+vas
+gora
+reka
+grad

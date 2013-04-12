@@ -11,7 +11,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-public class TEIReader  {
+public class TEIReader {
 
 	/** Parser stuff */
 	protected XMLStreamReader rdr;
@@ -230,12 +230,14 @@ public class TEIReader  {
 		TEI(start, "TEI"), 
 			text(new State[]{TEI, start}, "text"), 
 				body(text, "body"), 
-					div(body, "div"),
+					div(new State[] {body, start}, "div"),
 					p(new State[] {body, div}, "p"),
 						s(p, "s"),
 							c(s,"c"),
 							S(s,"S"),
 							w(s,"w"),
+							links(s, "links"),
+								link(links, "link"),
 							chunks(s, "chunks"),
 								chunk(chunks, "chunk");
 		

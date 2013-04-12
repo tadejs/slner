@@ -1,8 +1,19 @@
 package si.ijs.slner;
+
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -11,102 +22,134 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipException;
 
 import javax.xml.stream.XMLStreamException;
 
 import si.ijs.slner.tei.Doc;
 import si.ijs.slner.tei.DocReaders;
+import si.ijs.slner.tei.Token;
 import bsh.EvalError;
 import cc.mallet.fst.CRF;
 import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
+<<<<<<< HEAD
 import cc.mallet.fst.ViterbiWriter;
+=======
+>>>>>>> 831629211d78a67355ebd1d97b0027aeffbd4fb6
 import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
+<<<<<<< HEAD
 import cc.mallet.pipe.tsf.FeaturesInWindow;
+=======
+import cc.mallet.pipe.TokenSequenceLowercase;
+>>>>>>> 831629211d78a67355ebd1d97b0027aeffbd4fb6
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
 import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.share.mccallum.ner.TUI;
-import cc.mallet.types.Alphabet;
+import cc.mallet.share.upenn.ner.LengthBins;
 import cc.mallet.types.CrossValidationIterator;
 import cc.mallet.types.Instance;
 import cc.mallet.types.InstanceList;
 import cc.mallet.types.Sequence;
 import cc.mallet.util.CommandOption;
 
-
 public class SloveneNER {
-
 
 	private static String CAPS = "[\\p{Lu}]";
 	private static String LOW = "[\\p{Ll}]";
-	private static String CAPSNUM = "[\\p{Lu}\\p{Nd}]";
+	// private static String CAPSNUM = "[\\p{Lu}\\p{Nd}]";
 	private static String ALPHA = "[\\p{Lu}\\p{Ll}]";
 	private static String ALPHANUM = "[\\p{Lu}\\p{Ll}\\p{Nd}]";
 	private static String PUNT = "[,\\.;:?!()]";
 	private static String QUOTE = "[\"`']";
-	
-	static CommandOption.String inOption = new CommandOption.String
-	(TUI.class, "in", "e.g. corpus.xml", true, "", "Input file", null); 
-	
-	//(owner, name, argName, argRequired, defaultValue, shortdoc, longdoc)
-	
-	static CommandOption.String offsetsOption = new CommandOption.String
-	(TUI.class, "offsets", "e.g. [[0,0],[1]]", true, "[[-2],[-1],[1],[2]]", 
-	 "Offset conjunctions", null);
-	
-	static CommandOption.String capOffsetsOption = new CommandOption.String
-	(TUI.class, "cap-offsets", "e.g. [[0,0],[0,1]]", true, "", 
-	 "Offset conjunctions applied to features that are [A-Z]*", null);
-	
-	static CommandOption.Integer wordWindowFeatureOption = new CommandOption.Integer
-	(TUI.class, "word-window-size", "INTEGER", true, 3,
-	 "Size of window of words as features: 0=none, 10, 20...", null);
 
-	static CommandOption.Boolean charNGramsOption = new CommandOption.Boolean
-	(TUI.class, "char-ngrams", "true|false", true, true,
-	 "", null);
-	
-	static CommandOption.Boolean useFeatureInductionOption = new CommandOption.Boolean
-	(TUI.class, "use-feature-induction", "true|false", true, false,
-	 "Not use or use feature induction", null);
+	static CommandOption.String inOption = new CommandOption.String(TUI.class,
+			"in", "e.g. corpus.xml", true, "", "Input file", null);
 
-	static CommandOption.Boolean clusterFeatureInductionOption = new CommandOption.Boolean
-	(TUI.class, "cluster-feature-induction", "true|false", true, false,
-	 "Cluster in feature induction", null);
-	
-	static final CommandOption.List commandOptions =
-		new CommandOption.List (
-			"Training, testing and running a Chinese word segmenter.",
-			new CommandOption[] {
-				/*gaussianVarianceOption,
-				hyperbolicSlopeOption,
-				hyperbolicSharpnessOption,
-				randomSeedOption,
-				labelGramOption,*/
-				inOption,
-				wordWindowFeatureOption,
-				//useHyperbolicPriorOption,
-				useFeatureInductionOption,
-				clusterFeatureInductionOption,
-				/*useFirstMentionFeatureOption,
-				useDocHeaderFeatureOption,
-				includeConllLexiconsOption,*/
-				offsetsOption,
-				capOffsetsOption//,
-				/*viterbiFilePrefixOption,
-				useTestbOption,*/
+	static CommandOption.String outOption = new CommandOption.String(TUI.class,
+			"out", "e.g. model.ser.gz", false, "", "Output file", null);
+
+	static CommandOption.String inModelOption = new CommandOption.String(
+			TUI.class, "in-model", "e.g. model.ser.gz", false, "",
+			"Output file", null);
+
+	static CommandOption.String outModelOption = new CommandOption.String(
+			TUI.class, "out-model", "e.g. model.ser.gz", false, "",
+			"Output file", null);
+	// (owner, name, argName, argRequired, defaultValue, shortdoc, longdoc)
+
+	static CommandOption.String offsetsOption = new CommandOption.String(
+			TUI.class, "offsets", "e.g. [[0,0],[1]]", true,
+			"[[-2],[-1],[1],[2]]", "Offset conjunctions", null);
+
+	static CommandOption.String capOffsetsOption = new CommandOption.String(
+			TUI.class, "cap-offsets", "e.g. [[0,0],[0,1]]", true, "",
+			"Offset conjunctions applied to features that are [A-Z]*", null);
+
+	static CommandOption.Integer wordWindowFeatureOption = new CommandOption.Integer(
+			TUI.class, "word-window-size", "INTEGER", true, 10,
+			"Size of window of words as features: 0=none, 10, 20...", null);
+
+	static CommandOption.Boolean charNGramsOption = new CommandOption.Boolean(
+			TUI.class, "char-ngrams", "true|false", true, true, "", null);
+
+	static CommandOption.Boolean useFeatureInductionOption = new CommandOption.Boolean(
+			TUI.class, "use-feature-induction", "true|false", true, false,
+			"Not use or use feature induction", null);
+
+	static CommandOption.Boolean clusterFeatureInductionOption = new CommandOption.Boolean(
+			TUI.class, "cluster-feature-induction", "true|false", true, false,
+			"Cluster in feature induction", null);
+
+	static CommandOption.Boolean useHyperbolicPriorOption = new CommandOption.Boolean(
+			TUI.class, "use-hyperbolic-prior", "true|false", true, true,
+			"Use hyperbolic prior", null);
+
+	static CommandOption.Double gaussianVarianceOption = new CommandOption.Double(
+			TUI.class, "gaussian-variance", "DECIMAL", true, 10.0,
+			"The gaussian prior variance used for training.", null);
+
+	static CommandOption.Double hyperbolicSlopeOption = new CommandOption.Double(
+			TUI.class, "hyperbolic-slope", "DECIMAL", true, 0.2,
+			"The hyperbolic prior slope used for training.", null);
+
+	static CommandOption.Double hyperbolicSharpnessOption = new CommandOption.Double(
+			TUI.class, "hyperbolic-sharpness", "DECIMAL", true, 10.0,
+			"The hyperbolic prior sharpness used for training.", null);
+
+	static final CommandOption.List commandOptions = new CommandOption.List(
+			"Training, testing and running a Slovene named entity recognizer.",
+			new CommandOption[] { gaussianVarianceOption,
+					hyperbolicSlopeOption, hyperbolicSharpnessOption,
+					/*
+					 * randomSeedOption, labelGramOption,
+					 */
+					outOption, inOption, inModelOption, outModelOption,
+					wordWindowFeatureOption, useHyperbolicPriorOption,
+					useFeatureInductionOption, clusterFeatureInductionOption,
+					/*
+					 * useFirstMentionFeatureOption, useDocHeaderFeatureOption,
+					 * includeConllLexiconsOption,
+					 */
+					offsetsOption, capOffsetsOption // ,
+			/*
+			 * viterbiFilePrefixOption, useTestbOption,
+			 */
 			});
 
 	protected Pipe pipe;
 	protected CRF model;
-	
-	public SloveneNER() {
+	protected String homePath;
+
+	public SloveneNER(String homePath) {
+		this.homePath = homePath;
 		try {
 			pipe = getPipe();
 		} catch (FileNotFoundException e) {
@@ -115,50 +158,155 @@ public class SloveneNER {
 		}
 	}
 	
-	public static void main(String[] args) throws EvalError, ZipException, IOException, XMLStreamException {
-		// TODO Auto-generated method stub
-		commandOptions.process (args);
-		//String outFile = args[1];
+	public SloveneNER(InputStream is) throws ClassNotFoundException, IOException {
+		load(is);
+	}
+	
+	public void load(InputStream in) throws IOException, ClassNotFoundException {
+		ObjectInputStream ois = new ObjectInputStream(in);
+		model = (CRF) ois.readObject();
+		pipe = (Pipe) ois.readObject();
 
-		SloveneNER ner = new SloveneNER();
-		ner.trainTestEvaluation( inOption.value());
-		
-		
-	/*	ner.train(inOption.value());
-		Doc test = DocReaders.openFile(new File(inOption.value())).get(0);
-		
-		List<List<String>> tags = ner.tagTokens(test);
-		
-		Writer w = new OutputStreamWriter(System.out);
-		test.printTagged(tags, w);
-		w.flush();
-		w.close();*/
-		
-		
 	}
 
-	
+	public void save(OutputStream os) throws IOException {
+		ObjectOutputStream oos = new ObjectOutputStream(os);
+		oos.writeObject(model);
+		oos.writeObject(pipe);
+		oos.flush();
+		oos.close();
+	}
+
+	public static void main(String[] args) throws EvalError, ZipException,
+			IOException, XMLStreamException, ClassNotFoundException {
+		// TODO Auto-generated method stub
+		commandOptions.process(args);
+		// String outFile = args[1];
+
+		SloveneNER ner = new SloveneNER("");
+
+		if (outModelOption.wasInvoked()) {
+			ner.train(inOption.value());
+			System.out.println("Saving to: " + outModelOption.value());
+			FileOutputStream out = new FileOutputStream(outModelOption.value());
+			GZIPOutputStream gos = new GZIPOutputStream(out);
+			ner.save(gos);
+			gos.close();
+			out.close();
+
+		} else if (outOption.wasInvoked()) {
+			FileInputStream in = new FileInputStream(inModelOption.value());
+			GZIPInputStream gis = new GZIPInputStream(in);
+			ner.load(gis);
+			gis.close();
+
+			Doc d = DocReaders.openFile(new File(inOption.value())).get(0);
+
+			Iterable<List<String>> tags = ner.tag(d.getSentences());
+			List<List<String>> tagList = new ArrayList<List<String>>();
+			for (List<String> list : tags) {
+				tagList.add(list);
+			}
+			Writer w = new FileWriter(outOption.value());
+			d.printTagged(tagList, w);
+			d.printEntities(tagList, w);
+			w.close();
+
+		} else {
+			System.out.println("evaluating");
+			ner.trainTestEvaluation(inOption.value());
+		}
+
+		/*
+		 * ner.train(inOption.value()); Doc test = DocReaders.openFile(new
+		 * File(inOption.value())).get(0);
+		 * 
+		 * List<List<String>> tags = ner.tagTokens(test);
+		 * 
+		 * Writer w = new OutputStreamWriter(System.out); test.printTagged(tags,
+		 * w); w.flush(); w.close();
+		 */
+
+	}
+
 	public List<List<String>> tagTokens(Doc input) {
-		List<List<String>> tags = new ArrayList<List<String>>(input.getSentences().size());
-		
+		List<List<String>> tags = new ArrayList<List<String>>(input
+				.getSentences().size());
+
 		InstanceList docInstances = new InstanceList(pipe);
-		docInstances.addThruPipe(new SentenceIterator(input));		
-		
-	    for (Instance inst : docInstances) {
-	    	Sequence<?> sentence =  (Sequence<?>) inst.getData();
-	    	Sequence<?> sentenceTags =  model.transduce(sentence);
-	        
-	        List<String> sentenceTagsOut = new ArrayList<String>(sentenceTags.size());
-	        for (int i = 0; i < sentenceTags.size(); i++) {
-	        	sentenceTagsOut.add((String) sentenceTags.get(i));
-	        }
-	        tags.add(sentenceTagsOut);	      
-	    }
-		
-		
+		docInstances.addThruPipe(new SentenceIterator(input));
+
+		for (Instance inst : docInstances) {
+			Sequence<?> sentence = (Sequence<?>) inst.getData();
+			Sequence<?> sentenceTags = model.transduce(sentence);
+
+			List<String> sentenceTagsOut = new ArrayList<String>(
+					sentenceTags.size());
+			for (int i = 0; i < sentenceTags.size(); i++) {
+				sentenceTagsOut.add((String) sentenceTags.get(i));
+			}
+			tags.add(sentenceTagsOut);
+		}
+
 		return tags;
 	}
-	
+
+	public Iterable<List<String>> tag(final Iterable<List<Token>> instanceList) {
+		final InstanceList docInstances = new InstanceList(pipe);
+		docInstances.addThruPipe(new Iterator<Instance>() {
+			final Iterator<List<Token>> tokIt = instanceList.iterator();
+			int i = 0;
+
+			@Override
+			public boolean hasNext() {
+				return tokIt.hasNext();
+			}
+
+			@Override
+			public Instance next() {
+				List<Token> tokens = tokIt.next();
+				return new Instance(tokens, null, i++, tokens);
+			}
+
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+
+		});
+		return new Iterable<List<String>>() {
+			@Override
+			public Iterator<List<String>> iterator() {
+				final Iterator<Instance> instIt = docInstances.iterator();
+				return new Iterator<List<String>>() {
+
+					@Override
+					public boolean hasNext() {
+						return instIt.hasNext();
+					}
+
+					@Override
+					public List<String> next() {
+						Instance inst = instIt.next();
+						Sequence<?> sentence = (Sequence<?>) inst.getData();
+						Sequence<?> tags = model.transduce(sentence);
+						List<String> tagList = new ArrayList<String>(
+								tags.size());
+						for (int i = 0; i < tags.size(); i++) {
+							tagList.add((String) tags.get(i));
+						}
+						return tagList;
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}
+				};
+			}
+		};
+
+	}
 
 	public void train(String corpusFile) {
 		Doc d = null;
@@ -174,50 +322,48 @@ public class SloveneNER {
 		InstanceList trainingData = new InstanceList(pipe);
 		trainingData.addThruPipe(new SentenceIterator(d));
 		TransducerTrainer trainer = makeTrainer(trainingData);
-		while (trainer.train(trainingData, 10)) {
-			
-		} 
+		if (trainer.train(trainingData, 30)) {
+
+		}
 		model = (CRF) trainer.getTransducer();
 	}
 
 	public void trainTestEvaluation(String inFile) throws EvalError,
 			ZipException, IOException, XMLStreamException {
-		
-		String offsetsString = offsetsOption.value.replace('[','{').replace(']','}');
-		int[][] offsets = (int[][]) CommandOption.getInterpreter().eval ("new int[][] "+offsetsString);
 
-		String capOffsetsString = capOffsetsOption.value.replace('[','{').replace(']','}');
-		int[][] capOffsets = null;
-		if (capOffsetsString.length() > 0)
-			capOffsets = (int[][]) CommandOption.getInterpreter().eval ("new int[][] "+capOffsetsString);
 
-		
 		Doc d = DocReaders.openFile(new File(inFile)).get(0);
-		
 
-		
 		InstanceList allData = new InstanceList(pipe);
-		allData.addThruPipe (new SentenceIterator (d));
-	
-		System.out.println ("Read "+allData.size()+" instances");
-		
-		/*InstanceList[] splits = allData.split(new Random(), new double[]{.8,.2});
-		InstanceList trainingData = splits[0];
-		InstanceList testingData = splits[1];*/
-	
-		//InstanceList unlabeled = new InstanceList(p);
-		//unlabeled.addThruPipe(new SentenceIterator(DocReaders.openFile(new File("/home/tadej/workspace/slner/jos100k-train.xml.zip")).get(0)));
-		
+		allData.addThruPipe(new SentenceIterator(d));
 
-		/*TransducerTrainer crft = makeTrainer(trainingData);
-		
-		System.out.println("Training on "+trainingData.size()+" training instances, "+
-				 testingData.size()+" testing instances...");
+		System.out.println("Read " + allData.size() + " instances");
 
-		evaluate(trainingData, testingData, crft);*/
-		
-		crossvalidate(allData, 5);
-		
+		// InstanceList[] splits = allData.split(new Random(), new
+		// double[]{.8,.2});
+		// InstanceList trainingData = splits[0];
+		// InstanceList testingData = splits[1];
+
+		InstanceList unlabeled = null;// new InstanceList(pipe);
+		// unlabeled.addThruPipe(new
+		// SentenceIterator(Doc.asOne(DocReaders.openDir(new
+		// File("jos1Mv1_1-xml/jos1M/")))));
+
+		/*
+		 * if (unlabeled != null) { System.out.println("Read " +
+		 * unlabeled.size() + " unlabeled instances"); }
+		 */
+		/*
+		 * TransducerTrainer crft = makeTrainer(trainingData);
+		 * 
+		 * System.out.println("Training on "+trainingData.size()+
+		 * " training instances, "+ testingData.size()+" testing instances...");
+		 * 
+		 * evaluate(trainingData, testingData, crft);
+		 */
+
+		crossvalidate(allData, unlabeled, 10);
+
 	}
 
 	public Pipe getPipe() throws FileNotFoundException {
@@ -276,10 +422,15 @@ public class SloveneNER {
 				//new PrintTokenSequenceFeatures(),
 				new TokenSequence2FeatureVectorSequence (true, true)
 		});
+
 		return p;
 	}
 
+	public CRFTrainerByLabelLikelihood makeTrainer(InstanceList trainingData) {
 
+		// Print out some feature information
+		System.out.println("Number of features = "
+				+ pipe.getDataAlphabet().size());
 
 	public TransducerTrainer makeTrainer(InstanceList trainingData) {
 		// Print out all the target names
@@ -299,7 +450,6 @@ public class SloveneNER {
 		//CRFTrainerByEntropyRegularization crft = new CRFTrainerByEntropyRegularization(crf);
 		//CRFTrainerByGE crft = new CRFTrainerByGE(crf, new ArrayList<GEConstraint>(), 2);
 		CRFTrainerByLabelLikelihood crft = new CRFTrainerByLabelLikelihood(crf);
-		//crft.setUseSomeUnsupportedTrick(true);
 		crft.setUseSparseWeights(true);
 		//crft.setUseHyperbolicPrior(true);
 		//CRFTrainerByL1LabelLikelihood crft = new CRFTrainerByL1LabelLikelihood(crf);
@@ -363,14 +513,14 @@ public class SloveneNER {
 					System.out.println("Finished fold");
 					return s;
 				}
-				
+
 			});
 			promises.add(scoresFut);
 			pass++;
 			
 			
 		}
-		
+
 		for (Future<Scores> future : promises) {
 			try {
 				scores.addAll(future.get());
@@ -381,17 +531,15 @@ public class SloveneNER {
 				e.getCause().printStackTrace();
 			}
 		}
-		
-		
+
 		x.shutdown();
-		
+
 		Map<String, Double> averages = scores.avg();
 		for (Map.Entry<String, Double> me : averages.entrySet()) {
 			System.out.printf("%s: %2.4f\n", me.getKey(), me.getValue());
 		}
-		
-	}
 
+	}
 
 	public void evaluate(InstanceList trainingData,
 			InstanceList testingData,TransducerTrainer crft) {
@@ -400,8 +548,8 @@ public class SloveneNER {
 					new String[] {"Training", "Testing"},
 					new String[] {"osebno", "zemljepisno", "stvarno"/*, "PROD"*/},
 					new String[] {"osebno", "zemljepisno", "stvarno"/*, "PROD"*/});
-		ViterbiWriter vw = new ViterbiWriter ("out",
-				new InstanceList[] {trainingData, testingData}, new String[] {"Training", "Testing"});
+		/*ViterbiWriter vw = new ViterbiWriter ("out",
+				new InstanceList[] {trainingData, testingData}, new String[] {"Training", "Testing"});*/
 			
 		if (useFeatureInductionOption.value) {
 			if (clusterFeatureInductionOption.value)
@@ -429,7 +577,7 @@ public class SloveneNER {
 			
 			while (crft.train(trainingData, 20)) {
 				eval.evaluate(crft);
-				//vw.evaluate(crft);
+				// vw.evaluate(crft);
 			}
 			eval.evaluate(crft);
 			

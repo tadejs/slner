@@ -11,7 +11,6 @@ import java.io.ObjectOutputStream;
 import java.io.Reader;
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -114,7 +113,7 @@ public class LemmaTrieLexiconMembership extends Pipe implements Serializable {
 
 	private void readObject(ObjectInputStream in) throws IOException,
 			ClassNotFoundException {
-		int version = in.readInt();
+		/*int version = */in.readInt();
 		this.name = (String) in.readObject();
 		this.lexicon = (LemmaLexicon) in.readObject();
 		this.ignoreCase = in.readBoolean();
@@ -142,6 +141,7 @@ public class LemmaTrieLexiconMembership extends Pipe implements Serializable {
 			add(word, false, " ");
 		}
 
+		@SuppressWarnings("unchecked")
 		public void add(String word, boolean includeDelims, String delim) {
 			boolean newWord = false;
 			StringTokenizer st = new StringTokenizer(word, delim, includeDelims);
@@ -176,6 +176,7 @@ public class LemmaTrieLexiconMembership extends Pipe implements Serializable {
 			}
 		}
 
+		@SuppressWarnings("unchecked")
 		private int endOfWord(TokenSequence ts, int start) {
 			if (start < 0 || start >= ts.size()) {
 				System.err
@@ -223,9 +224,10 @@ public class LemmaTrieLexiconMembership extends Pipe implements Serializable {
 			out.writeInt(size);
 		}
 
+		@SuppressWarnings("unchecked")
 		private void readObject(ObjectInputStream in) throws IOException,
 				ClassNotFoundException {
-			int version = in.readInt();
+			/*int version =*/ in.readInt();
 			this.name = (String) in.readObject();
 			this.lex = (Map<String, Object>) in.readObject();
 			this.ignoreCase = in.readBoolean();
