@@ -23,12 +23,14 @@ import cc.mallet.fst.CRFTrainerByLabelLikelihood;
 import cc.mallet.fst.MultiSegmentationEvaluator;
 import cc.mallet.fst.TransducerTrainer;
 import cc.mallet.fst.ViterbiWriter;
+import cc.mallet.pipe.Noop;
 import cc.mallet.pipe.Pipe;
 import cc.mallet.pipe.SerialPipes;
 import cc.mallet.pipe.TokenSequence2FeatureVectorSequence;
+import cc.mallet.pipe.tsf.FeaturesInWindow;
 import cc.mallet.pipe.tsf.OffsetConjunctions;
 import cc.mallet.pipe.tsf.RegexMatches;
-import cc.mallet.pipe.tsf.TrieLexiconMembership;
+import cc.mallet.pipe.tsf.TokenTextCharNGrams;
 import cc.mallet.share.mccallum.ner.TUI;
 import cc.mallet.types.Alphabet;
 import cc.mallet.types.CrossValidationIterator;
@@ -219,7 +221,7 @@ public class SloveneNER {
 	}
 
 	public Pipe getPipe() throws FileNotFoundException {
-		return getPipe(new int[][] {{ }}); //-2,0}, {-1,0}, {-1,1}, {1}, {-1,2}, {-2,1}});//, {1},{2}});
+		return getPipe(new int[][] {{ -2,0}, {-1,0}, {-1,1}, {1}, {-1,2}, {-2,1}, {2}});//, {1},{2}});
 	}
 
 
@@ -251,23 +253,25 @@ public class SloveneNER {
 				new LemmaLexiconMembership( new File("lexicons/location-countries-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/location-int-cities-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/location-municipalities-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt")),
-				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/organization-tokens-sl.txt"), true),
+				new LemmaLexiconMembership( new File("lexicons/person-honorifics-sl.txt"), true),
 				new LemmaLexiconMembership( new File("lexicons/person-names-sl.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl-female.txt"), false),
-				new LemmaLexiconMembership( new File("lexicons/person-names-sl-male.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-female-sl.txt"), false),
+				new LemmaLexiconMembership( new File("lexicons/person-names-male-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-2-sl.txt"), false),
 				new LemmaLexiconMembership( new File("lexicons/person-surnames-sl.txt"), false),
-				new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.lex"), false),
-				new TrieLexiconMembership(new File("lexicons/american-english"), true),
+				new LemmaLexiconMembership( new File("lexicons/meseci.txt"), true),
+				new LemmaLexiconMembership( new File("lexicons/dnevi.txt"), true),
+				//new LemmaTrieLexiconMembership( new File("lexicons/mte-sl.txt"), false),
+				//new TrieLexiconMembership(new File("lexicons/american-english.txt"), true),
 				new OffsetConjunctions (offsets),
 				
 				/*(wordWindowFeatureOption.value > 0 ? 
 				(Pipe) new FeaturesInWindow ("WINDOW=", -wordWindowFeatureOption.value, wordWindowFeatureOption.value, Pattern.compile ("W=.*"), true)
 				 : (Pipe) new Noop()),*/
-				/*(charNGramsOption.value
-				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {3})
-				 : (Pipe) new Noop()),*/
+				(charNGramsOption.value
+				 ? (Pipe) new TokenTextCharNGrams ("CHARNGRAM=", new int[] {2,3})
+				 : (Pipe) new Noop()),
 
 				//new PrintTokenSequenceFeatures(),
 				new TokenSequence2FeatureVectorSequence (true, true)
@@ -293,6 +297,7 @@ public class SloveneNER {
 		
 		//CRFTrainerByStochasticGradient crft = new CRFTrainerByStochasticGradient(crf, 0.1);
 		//CRFTrainerByEntropyRegularization crft = new CRFTrainerByEntropyRegularization(crf);
+		//CRFTrainerByGE crft = new CRFTrainerByGE(crf, new ArrayList<GEConstraint>(), 2);
 		CRFTrainerByLabelLikelihood crft = new CRFTrainerByLabelLikelihood(crf);
 		//crft.setUseSomeUnsupportedTrick(true);
 		crft.setUseSparseWeights(true);
@@ -311,7 +316,7 @@ public class SloveneNER {
 	public void crossvalidate(InstanceList data, int folds) throws IOException {
 		CrossValidationIterator cxv = new CrossValidationIterator(data, folds);
 		Scores scores = new Scores();
-		ExecutorService x = Executors.newFixedThreadPool(16);
+		ExecutorService x = Executors.newFixedThreadPool(2);
 		
 		List<Future<Scores>> promises = new ArrayList<Future<Scores>>();
 		
@@ -336,6 +341,9 @@ public class SloveneNER {
 					InstanceList train = InstanceList.load(trainF);
 					InstanceList test = InstanceList.load(testF);
 					
+					trainF.delete();
+					testF.delete();
+					
 					crf.addStatesForLabelsConnectedAsIn(train);
 					TransducerTrainer crft = makeTrainer(train);
 					
@@ -359,6 +367,8 @@ public class SloveneNER {
 			});
 			promises.add(scoresFut);
 			pass++;
+			
+			
 		}
 		
 		for (Future<Scores> future : promises) {
