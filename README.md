@@ -2,15 +2,9 @@ Slovene Named Entity Extractor
 ------------------------------
 
 
-
-From the paper:
-Tadej ätajner, Tomaû Erjavec and Simon Krek. Razpoznavanje imenskih entitet v slovenskem besedilu; In Proceedings of 15th Internation Multiconference on Information Society - Jezikovne Tehnologije 2012, Ljubljana, Slovenia
-
-
-
 Licence: Apache 2.0
 
-   Copyright 2012 Joûef Stefan Institute
+   Copyright 2012 Jozef Stefan Institute
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,13 +25,13 @@ Usage:
 Compile into single .jar file:
 ./build.sh
 
-Download datasets:
+Download training dataset:
 ./download.sh
 
 Train with downloaded corpus:
 ./train.sh
 
-Evaluate:
+Evaluate with training corpus
 java -jar slner-all.jar --in corpus.tei.xml
 
 Train:
@@ -45,4 +39,8 @@ java -jar slner-all.jar --out-model model.ser.gz --in corpus.tei.xml
 
 Tag:
 java -jar slner-all.jar --in corpus.tei.xml --in-model model.ser.gz --out corpus_with_entities.tei.xml
+
+For implementation details, see the [paper][slo20].
+
+[slo20]: http://www.trojina.org/slovenscina2.0/arhiv/2013/2/Slo2.0_2013_2_04.pdf "≈†tajner, T., Erjavec, T., Krek, S. (2013): Razpoznavanje imenskih entitet v slovenskem besedilu. Sloven≈°ƒçina 2.0, 1 (2): 58‚Äì81. URL:" 
 
