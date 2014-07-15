@@ -93,10 +93,14 @@ public class TEIReader {
 				throw new XMLStreamException(message);
 			}
 		}
-		else{
+		else {
+		    stateStack.push(state);
+		    state = State.ignore;
+		}
+		/*else{
 			System.out.println("unknown tag: "+tagName);
 			// unknown tag: ignore
-		}
+		}*/
 
 		// dispatch to handling method
 		dispatch();		
@@ -228,10 +232,14 @@ public class TEIReader {
 	enum State { 
 		start(new State[]{}, ""),
 		TEI(start, "TEI"), 
+		    teiHeader(new State[]{TEI}, "teiHeader"),
+		        ignore(new State[]{teiHeader}, ""),          
 			text(new State[]{TEI, start}, "text"), 
 				body(text, "body"), 
 					div(new State[] {body, start}, "div"),
-					p(new State[] {body, div}, "p"),
+					p(new State[] {body, div, ignore}, "p"),
+					    list(new State[] {p}, "list"),
+					        item(new State[] {list}, "item"),
 						s(p, "s"),
 							c(s,"c"),
 							S(s,"S"),

@@ -5,15 +5,12 @@
     <target name="create_run_jar">
         <jar destfile="slner-all.jar">
             <manifest>
-                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
-                <attribute name="Rsrc-Main-Class" value="si.ijs.slner.SloveneNER"/>
-                <attribute name="Class-Path" value="."/>
-                <attribute name="Rsrc-Class-Path" value="./ mallet-deps.jar mallet.jar"/>
+                <attribute name="Main-Class" value="si.ijs.slner.SloveneNER"/>
+                <attribute name="Class-Path" value="./ mallet-deps.jar mallet.jar"/>
             </manifest>
-            <zipfileset src="jar-in-jar-loader.zip"/>
             <fileset dir="bin"/>
-            <zipfileset dir="lib" includes="mallet-deps.jar"/>
-            <zipfileset dir="lib" includes="mallet.jar"/>
+            <zipfileset src="lib/mallet-deps.jar" includes="**/*.class **/*.properties"/>
+            <zipfileset src="lib/mallet.jar"  includes="**/*.class **/*.properties"/>
         </jar>
     </target>
 </project>

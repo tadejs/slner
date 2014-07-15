@@ -2,6 +2,7 @@ package si.ijs.slner;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
 import si.ijs.slner.tei.Doc;
 import si.ijs.slner.tei.Token;
@@ -32,5 +33,5 @@ public class SentenceIterator implements Iterator<Instance> {
 	public void remove() {
 		sentIt.remove();
 	}
-	
+
 }
