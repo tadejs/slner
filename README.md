@@ -28,6 +28,15 @@ Licence: Apache 2.0
 Usage:
 -----------
 
+Compile into single .jar file:
+./build.sh
+
+Download datasets:
+./download.sh
+
+Train with downloaded corpus:
+./train.sh
+
 Evaluate:
 java -jar slner-all.jar --in corpus.tei.xml
 
