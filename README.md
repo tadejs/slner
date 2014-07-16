@@ -40,5 +40,5 @@ java -jar slner-all.jar --out-model model.ser.gz --in corpus.tei.xml
 Tag:
 java -jar slner-all.jar --in corpus.tei.xml --in-model model.ser.gz --out corpus_with_entities.tei.xml
 
-For implementation details, see the [Štajner, T., Erjavec, T., Krek, S. (2013): Razpoznavanje imenskih entitet v slovenskem besedilu. Slovenščina 2.0, 1 (2): 58–81.][http://www.trojina.org/slovenscina2.0/arhiv/2013/2/Slo2.0_2013_2_04.pdf].
+For implementation details, see the [Štajner, T., Erjavec, T., Krek, S. (2013): Razpoznavanje imenskih entitet v slovenskem besedilu. Slovenščina 2.0, 1 (2): 58–81.](http://www.trojina.org/slovenscina2.0/arhiv/2013/2/Slo2.0_2013_2_04.pdf).
 
