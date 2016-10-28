@@ -1,3 +1,5 @@
+build/
+corpus/
 *.class
 
 # Package Files #
