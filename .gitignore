@@ -10,4 +10,6 @@ corpus/
 
 # idea
 *.iml
+.project
+.classpath
 
