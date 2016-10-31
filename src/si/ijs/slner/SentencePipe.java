@@ -13,51 +13,49 @@ import cc.mallet.types.LabelSequence;
 import cc.mallet.types.TokenSequence;
 
 public class SentencePipe extends Pipe {
+    private static final long serialVersionUID = 7920108448164849979L;
 
-	private static final long serialVersionUID = 7920108448164849979L;
-	
-	protected Pattern newlines;
-	//protected TsvReader rdr;
-	protected boolean saveSrc;
-	//protected boolean doDigitCollapses;
-	
-	public SentencePipe(/*boolean collapseDigits*/boolean saveSource) {
-		super(null, new LabelAlphabet());
-		newlines = Pattern.compile("\n");
-		//rdr = new TsvReader();
-		saveSrc = saveSource;
-		//doDigitCollapses = collapseDigits;
-	}
+    protected Pattern newlines;
+    //protected TsvReader rdr;
+    protected boolean saveSrc;
+    //protected boolean doDigitCollapses;
 
-	public Instance pipe (Instance carrier)
-	{
-		@SuppressWarnings("unchecked")
-		List<Token> tokens = (List<Token>) carrier.getData();
-		TokenSequence data = new TokenSequence (tokens.size());
-		LabelSequence target = new LabelSequence ((LabelAlphabet)getTargetAlphabet(), tokens.size());
+    public SentencePipe(/*boolean collapseDigits*/boolean saveSource) {
+        super(null, new LabelAlphabet());
+        newlines = Pattern.compile("\n");
+        //rdr = new TsvReader();
+        saveSrc = saveSource;
+        //doDigitCollapses = collapseDigits;
+    }
 
-		StringBuilder source = saveSrc ? new StringBuilder() : null;
-		
-		
-		String word, lemma, label;
-		boolean first = true;
-		for (Token t : tokens) {
-			if (t.getType() == Token.Type.S)
-				continue;
-			
-			word = t.getLiteral();
-			if (word == null) {
-				word = "";
-			}
-			label = t.getTokenClass();
-			if (label == null) {
-				label = "";//"-";
-			}
-			lemma = t.getLemma();
-			
-			
-			// Transformations
-			/*if (doDigitCollapses) {
+    public Instance pipe(Instance carrier) {
+        @SuppressWarnings("unchecked")
+        List<Token> tokens = (List<Token>) carrier.getData();
+        TokenSequence data = new TokenSequence(tokens.size());
+        LabelSequence target = new LabelSequence((LabelAlphabet) getTargetAlphabet(), tokens.size());
+
+        StringBuilder source = saveSrc ? new StringBuilder() : null;
+
+
+        String word, lemma, label;
+        boolean first = true;
+        for (Token t : tokens) {
+            if (t.getType() == Token.Type.S)
+                continue;
+
+            word = t.getLiteral();
+            if (word == null) {
+                word = "";
+            }
+            label = t.getTokenClass();
+            if (label == null) {
+                label = "";//"-";
+            }
+            lemma = t.getLemma();
+
+
+            // Transformations
+            /*if (doDigitCollapses) {
 				if (word.matches ("\\d\\d\\d\\d"))
 					word = "<YEAR>";
 				else if (word.matches ("\\d\\d\\d\\d-\\d+"))
@@ -75,23 +73,23 @@ public class SentencePipe extends Pipe {
 			/*if (doDowncasing)
 				word = word.toLowerCase();
 			Token token = new Token (word);*/
-			
-			cc.mallet.types.Token tok = new cc.mallet.types.Token(word);
-			if (lemma != null) {
-				tok.setProperty("lemma", lemma);
-			}
-			
-			List<String> features = new ArrayList<String>();
 
-			if (first) {
-				first = false;
-				features.add("Pos=first");
-			}
-			
-			if (t.getType() == Token.Type.w) {
-				if (t.getPos() != null) { 
-					PosDefs.decode(t.getPos(), features);
-					//PosDefs.Type posType = PosDefs.getType(t.getPos());
+            cc.mallet.types.Token tok = new cc.mallet.types.Token(word);
+            if (lemma != null) {
+                tok.setProperty("lemma", lemma);
+            }
+
+            List<String> features = new ArrayList<String>();
+
+            if (first) {
+                first = false;
+                features.add("Pos=first");
+            }
+
+            if (t.getType() == Token.Type.w) {
+                if (t.getPos() != null) {
+                    PosDefs.decode(t.getPos(), features);
+                    //PosDefs.Type posType = PosDefs.getType(t.getPos());
 					/*switch (posType) {
 						case preposition:
 						case conjunction:
@@ -103,19 +101,19 @@ public class SentencePipe extends Pipe {
 						//case residual:
 						//	features.add("W="+(lemma == null ? word : lemma)); break;
 					}*/
-				}
-			
-				
-			} else if (t.getType() == Token.Type.c) {
-				features.add("Type=Punctuation");
-				//features.add("W="+t.getLiteral());
-			}
-			
-			for (String ftr : features) {
-				tok.setFeatureValue(ftr, 1);
-			}
-			
-			// Word and tag unigram at current time
+                }
+
+
+            } else if (t.getType() == Token.Type.c) {
+                features.add("Type=Punctuation");
+                //features.add("W="+t.getLiteral());
+            }
+
+            for (String ftr : features) {
+                tok.setFeatureValue(ftr, 1);
+            }
+
+            // Word and tag unigram at current time
 			/*if (doSpelling) {
 				for (int j = 0; j < endings.length; j++) {
 					ending[2][j] = ending[1][j];
@@ -132,25 +130,27 @@ public class SentencePipe extends Pipe {
 			/*if (doPhrases) {
 				token.setFeatureValue ("P="+phrase, 1);
 			}*/
-			
-			// Append
-			data.add (tok);
-			//target.add (bigramLabel);
-			target.add (label);
-			//System.out.print (label + ' ');
-			if (saveSrc) {
-				source.append (word); source.append (" ");
-				source.append (label); source.append ("\n");
-			}
 
-		}
-		//System.out.println ("");
-		carrier.setData(data);
-		carrier.setTarget(target);
-		if (saveSrc) {
-			carrier.setSource(source);
-		}
-		return carrier;
-	}
-	
+            // Append
+            data.add(tok);
+            //target.add (bigramLabel);
+            target.add(label);
+            //System.out.print (label + ' ');
+            if (saveSrc) {
+                source.append(word);
+                source.append(" ");
+                source.append(label);
+                source.append("\n");
+            }
+
+        }
+        //System.out.println ("");
+        carrier.setData(data);
+        carrier.setTarget(target);
+        if (saveSrc) {
+            carrier.setSource(source);
+        }
+        return carrier;
+    }
+
 }
