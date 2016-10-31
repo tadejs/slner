@@ -2,6 +2,11 @@ build/
 corpus/
 *.class
 
+# Gradle
+.gradletasknamecache
+.gradle/
+build/
+
 # Package Files #
 *.jar
 *.war
