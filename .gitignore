@@ -8,6 +8,8 @@ corpus/
 build/
 
 # Package Files #
+*.gz
+*.txt
 *.jar
 *.war
 *.ear

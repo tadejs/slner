@@ -22,6 +22,12 @@ Running fat jar
 java -cp "build/libs/slner-all-1.1.jar" si.ijs.slner.SloveneNER 
 ```
 
+## Training
+
+```bash
+./sbin/run.sh --in ./corpus/jos100k-train.xml.zip --out-model model.ser.gz
+```
+
 ## Usage (OLD):
 
 Compile into single .jar file:

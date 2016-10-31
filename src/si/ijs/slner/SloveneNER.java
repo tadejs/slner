@@ -123,7 +123,7 @@ public class SloveneNER {
                     outOption, inOption, inModelOption, outModelOption,
                     wordWindowFeatureOption, useHyperbolicPriorOption,
                     useFeatureInductionOption, clusterFeatureInductionOption,
-					/*
+                    /*
 					 * useFirstMentionFeatureOption, useDocHeaderFeatureOption,
 					 * includeConllLexiconsOption,
 					 */
@@ -155,7 +155,6 @@ public class SloveneNER {
         ObjectInputStream ois = new ObjectInputStream(in);
         model = (CRF) ois.readObject();
         pipe = (Pipe) ois.readObject();
-
     }
 
     public void save(OutputStream os) throws IOException {
@@ -319,8 +318,6 @@ public class SloveneNER {
 
     public void trainTestEvaluation(String inFile) throws EvalError,
             ZipException, IOException, XMLStreamException {
-
-
         Doc d = DocReaders.openFile(new File(inFile)).get(0);
 
         InstanceList allData = new InstanceList(pipe);
@@ -352,7 +349,6 @@ public class SloveneNER {
 		 */
 
         crossvalidate(allData, 10);
-
     }
 
     public Pipe getPipe() throws FileNotFoundException {
