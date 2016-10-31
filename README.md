@@ -5,7 +5,8 @@
 Build `jar` or run `test`s:
 
 ```bash
-gradle build
+gradle build        # builds "jar"
+gradle fatJar       # builds fat jar with all dependencies included
 gradle test
 ```
 
@@ -13,6 +14,12 @@ Running with [run.sh](sbing/run.sh) wrapper.
 
 ```bash
 ./sbin/run.sh --out-model modelx.ser.gz --in ./corpus/jos16534_entities.tsv
+```
+
+Running fat jar
+
+```bash
+java -cp "build/libs/slner-all-1.1.jar" si.ijs.slner.SloveneNER 
 ```
 
 ## Usage (OLD):

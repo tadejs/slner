@@ -9,9 +9,6 @@ sourceSets {
         java {
             srcDirs = ['src']
         }
-        resources {
-            srcDirs = ['src/resources']
-        }
     }
 
     test {
@@ -28,6 +25,12 @@ jar {
                 'Implementation-Version': version,
                 'Main-Class': mainClassName
     }
+}
+
+task fatJar(type: Jar) {
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
 
 repositories {
