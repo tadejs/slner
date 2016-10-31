@@ -7,3 +7,7 @@ corpus/
 *.war
 *.ear
 /bin
+
+# idea
+*.iml
+
