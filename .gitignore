@@ -13,7 +13,6 @@ build/
 *.jar
 *.war
 *.ear
-/bin
 
 # idea
 *.iml
