@@ -175,6 +175,7 @@ public class SloveneNER {
 
 		SloveneNER ner = new SloveneNER("");
 
+		// used to train the model
 		if (outModelOption.wasInvoked()) {
 			ner.train(inOption.value());
 			System.out.println("Saving to: " + outModelOption.value());
@@ -183,7 +184,7 @@ public class SloveneNER {
 			ner.save(gos);
 			gos.close();
 			out.close();
-
+		// loads up the model and produces tags
 		} else if (outOption.wasInvoked()) {
 			FileInputStream in = new FileInputStream(inModelOption.value());
 			GZIPInputStream gis = new GZIPInputStream(in);
