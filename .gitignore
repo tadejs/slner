@@ -2,8 +2,21 @@ build/
 corpus/
 *.class
 
+# Gradle
+.gradletasknamecache
+.gradle/
+build/
+
 # Package Files #
+*.gz
+*.txt
 *.jar
 *.war
 *.ear
 /bin
+
+# idea
+*.iml
+.project
+.classpath
+
