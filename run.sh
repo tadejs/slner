@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-java -cp "slner.jar:lib/*" \
+java -cp "slner-all.jar" \
   si.ijs.slner.SloveneNER $@
